@@ -52,6 +52,7 @@ function Layout() {
           }
         />
         <Route path="/auth" element={isAuth ? <Navigate to="/" /> : <Auth />} />
+        <Route path="/Auth" element={isAuth ? <Navigate to="/" /> : <Auth />} />
         <Route
           path="/superadmin"
           element={

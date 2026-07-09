@@ -35,8 +35,8 @@ const Header = () => {
 
     // Redirect and reload
     setTimeout(() => {
-      navigate("/auth");
-      window.location.replace("/auth"); // Use replace to prevent back button access
+      navigate("/Auth");
+      window.location.replace("/Auth"); // Use replace to prevent back button access
     }, 600);
   };
 
