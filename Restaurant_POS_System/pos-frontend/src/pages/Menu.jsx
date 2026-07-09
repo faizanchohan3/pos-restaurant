@@ -17,43 +17,52 @@ const Menu = () => {
   const customerData = useSelector((state) => state.customer);
 
   return (
-    <section className="bg-[#1f1f1f] h-[calc(100vh-5rem)] overflow-hidden flex gap-3">
-      {/* Left Div */}
-      <div className="flex-[3]">
-        <div className="flex items-center justify-between px-10 py-4">
-          <div className="flex items-center gap-4">
-            <BackButton />
-            <h1 className="text-[#f5f5f5] text-2xl font-bold tracking-wider">
-              Menu
+    <section className="bg-[#1f1f1f] min-h-screen flex flex-col pb-24">
+      {/* Header */}
+      <div className="flex items-center justify-between px-10 py-4 bg-[#2a2a2a] border-b border-[#383838]">
+        <div className="flex items-center gap-4">
+          <BackButton />
+          <h1 className="text-[#f5f5f5] text-2xl font-bold tracking-wider">
+            🍽️ Menu
+          </h1>
+        </div>
+        <div className="flex items-center gap-3 cursor-pointer bg-[#1f1f1f] px-4 py-2 rounded-lg">
+          <MdRestaurantMenu className="text-[#f5f5f5] text-3xl" />
+          <div className="flex flex-col items-start">
+            <h1 className="text-sm text-[#f5f5f5] font-semibold">
+              {customerData.customerName || "Customer"}
             </h1>
-          </div>
-          <div className="flex items-center justify-around gap-4">
-            <div className="flex items-center gap-3 cursor-pointer">
-              <MdRestaurantMenu className="text-[#f5f5f5] text-4xl" />
-              <div className="flex flex-col items-start">
-                <h1 className="text-md text-[#f5f5f5] font-semibold tracking-wide">
-                  {customerData.customerName || "Customer Name"}
-                </h1>
-                <p className="text-xs text-[#ababab] font-medium">
-                  Table : {customerData.table?.tableNo || "N/A"}
-                </p>
-              </div>
-            </div>
+            <p className="text-xs text-[#ababab]">
+              Table: {customerData.table?.tableNo || "N/A"}
+            </p>
           </div>
         </div>
-
-        <MenuContainer />
       </div>
-      {/* Right Div */}
-      <div className="flex-[1] bg-[#1a1a1a] mt-4 mr-3 h-[780px] rounded-lg pt-2">
-        {/* Customer Info */}
-        <CustomerInfo />
-        <hr className="border-[#2a2a2a] border-t-2" />
-        {/* Cart Items */}
-        <CartInfo />
-        <hr className="border-[#2a2a2a] border-t-2" />
-        {/* Bills */}
-        <Bill />
+
+      {/* Main Content */}
+      <div className="flex gap-4 flex-1 p-4">
+        {/* Left: Menu Items (Scrollable) */}
+        <div className="flex-[3] overflow-y-auto">
+          <MenuContainer />
+        </div>
+
+        {/* Right: Cart/Bill (Fixed) */}
+        <div className="flex-[1] flex flex-col gap-3 sticky top-4 h-fit">
+          <div className="bg-[#2a2a2a] rounded-lg border border-[#383838] p-4 overflow-y-auto max-h-96">
+            <h3 className="text-[#f5f5f5] font-bold mb-3">👤 Customer Info</h3>
+            <CustomerInfo />
+          </div>
+
+          <div className="bg-[#2a2a2a] rounded-lg border border-[#383838] p-4 overflow-y-auto max-h-96">
+            <h3 className="text-[#f5f5f5] font-bold mb-3">🛒 Cart</h3>
+            <CartInfo />
+          </div>
+
+          <div className="bg-[#2a2a2a] rounded-lg border border-[#383838] p-4 overflow-y-auto max-h-96">
+            <h3 className="text-[#f5f5f5] font-bold mb-3">💳 Bill</h3>
+            <Bill />
+          </div>
+        </div>
       </div>
 
       <BottomNav />

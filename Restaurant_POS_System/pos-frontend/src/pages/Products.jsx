@@ -188,81 +188,89 @@ const Products = () => {
 
       {/* Add/Edit Product Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-[#2a2a2a] rounded-lg p-8 w-96 max-h-96 overflow-y-auto">
-            <h2 className="text-white text-xl font-bold mb-4">
-              {editingId ? "Edit Product" : "Add New Product"}
-            </h2>
-            <form onSubmit={handleAddProduct}>
-              <div className="mb-4">
-                <label className="text-[#ababab] text-sm mb-2 block">Product Name *</label>
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#2a2a2a] rounded-lg w-full max-w-md max-h-screen overflow-y-auto border border-[#383838]">
+            <div className="sticky top-0 bg-[#2a2a2a] p-6 border-b border-[#383838]">
+              <h2 className="text-white text-2xl font-bold">
+                {editingId ? "✏️ Edit Product" : "➕ Add New Product"}
+              </h2>
+            </div>
+            <form onSubmit={handleAddProduct} className="p-6 space-y-4">
+              <div>
+                <label className="text-[#ababab] text-sm mb-2 block font-semibold">📝 Product Name *</label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
                   placeholder="Enter product name"
-                  className="w-full bg-[#1f1f1f] text-white px-4 py-2 rounded-lg focus:outline-none border border-[#383838]"
+                  className="w-full bg-[#1f1f1f] text-white px-4 py-2 rounded-lg focus:outline-none border border-[#383838] focus:border-yellow-400"
+                  required
                 />
               </div>
-              <div className="mb-4">
-                <label className="text-[#ababab] text-sm mb-2 block">Category *</label>
+              <div>
+                <label className="text-[#ababab] text-sm mb-2 block font-semibold">📂 Category *</label>
                 <select
                   value={formData.category}
                   onChange={(e) => setFormData({...formData, category: e.target.value})}
-                  className="w-full bg-[#1f1f1f] text-white px-4 py-2 rounded-lg focus:outline-none border border-[#383838]"
+                  className="w-full bg-[#1f1f1f] text-white px-4 py-2 rounded-lg focus:outline-none border border-[#383838] focus:border-yellow-400"
+                  required
                 >
                   {categories.map(cat => (
                     <option key={cat.id} value={cat.name}>{cat.name}</option>
                   ))}
                 </select>
               </div>
-              <div className="mb-4">
-                <label className="text-[#ababab] text-sm mb-2 block">Price *</label>
+              <div>
+                <label className="text-[#ababab] text-sm mb-2 block font-semibold">💰 Price *</label>
                 <input
                   type="number"
                   step="0.01"
                   value={formData.price}
                   onChange={(e) => setFormData({...formData, price: e.target.value})}
                   placeholder="Enter price"
-                  className="w-full bg-[#1f1f1f] text-white px-4 py-2 rounded-lg focus:outline-none border border-[#383838]"
+                  className="w-full bg-[#1f1f1f] text-white px-4 py-2 rounded-lg focus:outline-none border border-[#383838] focus:border-yellow-400"
+                  required
                 />
               </div>
-              <div className="mb-4">
-                <label className="text-[#ababab] text-sm mb-2 block">Image Emoji</label>
+              <div>
+                <label className="text-[#ababab] text-sm mb-2 block font-semibold">🖼️ Image Emoji</label>
                 <input
                   type="text"
                   value={formData.image}
                   onChange={(e) => setFormData({...formData, image: e.target.value})}
                   placeholder="e.g., 🍽️, 🍗, 🍚"
                   maxLength="2"
-                  className="w-full bg-[#1f1f1f] text-white px-4 py-2 rounded-lg focus:outline-none border border-[#383838]"
+                  className="w-full bg-[#1f1f1f] text-white px-4 py-2 rounded-lg focus:outline-none border border-[#383838] focus:border-yellow-400"
                 />
               </div>
-              <div className="mb-4">
-                <label className="text-[#ababab] text-sm mb-2 block">Description</label>
+              <div>
+                <label className="text-[#ababab] text-sm mb-2 block font-semibold">✍️ Description</label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({...formData, description: e.target.value})}
                   placeholder="Enter product description"
-                  className="w-full bg-[#1f1f1f] text-white px-4 py-2 rounded-lg focus:outline-none border border-[#383838] h-16 resize-none"
+                  className="w-full bg-[#1f1f1f] text-white px-4 py-2 rounded-lg focus:outline-none border border-[#383838] focus:border-yellow-400 h-20 resize-none"
                 />
               </div>
-              <div className="flex gap-3">
+
+              {/* Sticky Footer with Buttons */}
+              <div className="flex gap-3 pt-4 border-t border-[#383838]">
                 <button
                   type="button"
                   onClick={() => {
                     setShowAddModal(false);
                     setEditingId(null);
+                    setFormData({ name: "", category: "Appetizers", price: "", image: "🍽️", description: "" });
                   }}
-                  className="flex-1 bg-[#383838] text-white px-4 py-2 rounded-lg font-semibold hover:bg-[#484848]"
+                  className="flex-1 bg-[#383838] hover:bg-[#484848] text-white px-4 py-2 rounded-lg font-semibold transition"
                 >
-                  Cancel
+                  ✕ Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 bg-yellow-400 text-gray-900 px-4 py-2 rounded-lg font-bold hover:bg-yellow-500"
+                  className="flex-1 bg-yellow-400 hover:bg-yellow-500 text-gray-900 px-4 py-2 rounded-lg font-bold transition"
                 >
-                  {editingId ? "Update" : "Add"}
+                  {editingId ? "✓ Update Product" : "➕ Add Product"}
                 </button>
               </div>
             </form>
