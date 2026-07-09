@@ -40,6 +40,11 @@ const Login = () => {
       return superAdmins.find(a => a.email === email && a.password === password);
     };
 
+    const checkShopLogin = (email, password) => {
+      const approvedShops = JSON.parse(localStorage.getItem("approvedShops") || "[]");
+      return approvedShops.find(s => s.email === email && s.password === password && s.status === "approved");
+    };
+
     const handleSubmit = (e) => {
       e.preventDefault();
       if (!formData.email || !formData.password) {
@@ -53,6 +58,15 @@ const Login = () => {
         localStorage.setItem("superAdminSession", JSON.stringify({ id: superAdmin.id, name: superAdmin.name, email: superAdmin.email }));
         enqueueSnackbar(`Welcome ${superAdmin.name}! Redirecting to dashboard...`, { variant: "success" });
         setTimeout(() => navigate("/superadmin"), 800);
+        return;
+      }
+
+      // Check if it's an approved shop
+      const shop = checkShopLogin(formData.email, formData.password);
+      if (shop) {
+        localStorage.setItem("shopSession", JSON.stringify({ id: shop.id, name: shop.shopName, email: shop.email }));
+        enqueueSnackbar(`Welcome ${shop.shopName}! Redirecting to dashboard...`, { variant: "success" });
+        setTimeout(() => navigate("/"), 800);
         return;
       }
 
