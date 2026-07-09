@@ -19,12 +19,44 @@ const Login = () => {
       setFormData({...formData, [e.target.name]: e.target.value});
     }
 
+    const checkSuperAdmin = (email, password) => {
+      const superAdmins = JSON.parse(localStorage.getItem("superAdmins") || "[]");
+      if (superAdmins.length === 0) {
+        superAdmins.push(
+          {
+            id: 1,
+            name: "Faizan Chohan",
+            email: "faizanchohan30@gmail.com",
+            password: "Fai-9090",
+          },
+          {
+            id: 2,
+            name: "Super Administrator",
+            email: "admin@restro.com",
+            password: "admin123",
+          }
+        );
+      }
+      return superAdmins.find(a => a.email === email && a.password === password);
+    };
+
     const handleSubmit = (e) => {
       e.preventDefault();
       if (!formData.email || !formData.password) {
         enqueueSnackbar("Please fill all fields", { variant: "warning" });
         return;
       }
+
+      // Check if it's a SuperAdmin first
+      const superAdmin = checkSuperAdmin(formData.email, formData.password);
+      if (superAdmin) {
+        localStorage.setItem("superAdminSession", JSON.stringify({ id: superAdmin.id, name: superAdmin.name, email: superAdmin.email }));
+        enqueueSnackbar(`Welcome ${superAdmin.name}! Redirecting to dashboard...`, { variant: "success" });
+        setTimeout(() => navigate("/superadmin"), 800);
+        return;
+      }
+
+      // Otherwise try regular login
       loginMutation.mutate(formData);
     }
 

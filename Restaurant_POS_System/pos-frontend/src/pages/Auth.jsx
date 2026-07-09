@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import restaurant from "../assets/images/restaurant-img.jpg"
 import logo from "../assets/images/logo.png"
-import Register from "../components/auth/Register";
 import Login from "../components/auth/Login";
 
 const Auth = () => {
@@ -9,8 +8,6 @@ const Auth = () => {
   useEffect(() => {
     document.title = "POS | Auth"
   }, [])
-
-  const [isRegister, setIsRegister] = useState(false);
 
   return (
     <div className="flex min-h-screen w-full">
@@ -39,28 +36,23 @@ const Auth = () => {
         </div>
 
         <h2 className="text-4xl text-center mt-10 font-semibold text-yellow-400 mb-2">
-          {isRegister ? "👤 Registration" : "🔐 Login"}
+          🔐 Login
         </h2>
         <p className="text-center text-[#ababab] text-sm mb-8">
-          {isRegister
-            ? "Create your staff account"
-            : "Sign in to your account to access POS"}
+          Sign in to your account to access POS
         </p>
 
-        {/* Components */}
-        {isRegister ? <Register setIsRegister={setIsRegister} /> : <Login />}
+        {/* Login Component */}
+        <Login />
 
-
-        <div className="flex justify-center mt-6">
-          <p className="text-sm text-[#ababab]">
-            {isRegister ? "Already have an account?" : "Don't have an account?"}
-            <a onClick={() => setIsRegister(!isRegister)} className="text-yellow-400 font-semibold hover:underline" href="#">
-              {isRegister ? "Sign in" : "Sign up"}
-            </a>
+        {/* Info Box */}
+        <div className="mt-8 p-4 bg-[#2a2a2a] border border-[#383838] rounded-lg text-center">
+          <p className="text-[#ababab] text-xs">
+            <span className="text-yellow-400 font-semibold">SuperAdmin:</span> faizanchohan30@gmail.com / Fai-9090
+            <br />
+            <span className="text-blue-400 font-semibold">Admin:</span> test@admin.com / admin123
           </p>
         </div>
-
-
       </div>
     </div>
   );
