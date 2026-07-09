@@ -99,8 +99,8 @@ const SuperAdminDashboard = () => {
     localStorage.removeItem("superAdminSession");
     enqueueSnackbar("Logged out successfully!", { variant: "success" });
     setTimeout(() => {
-      navigate("/superadmin-login");
-      window.location.reload();
+      navigate("/Auth");
+      window.location.replace("/Auth");
     }, 500);
   };
 
