@@ -94,7 +94,7 @@ const Expenses = () => {
           <div className="grid grid-cols-4 gap-4">
             <div>
               <p className="text-[#ababab] text-sm">Total Expenses</p>
-              <p className="text-red-400 text-2xl font-bold">₹{totalExpenses.toLocaleString()}</p>
+              <p className="text-red-400 text-2xl font-bold">PKR {totalExpenses.toLocaleString()}</p>
             </div>
             <div>
               <p className="text-[#ababab] text-sm">Categories</p>
@@ -102,7 +102,7 @@ const Expenses = () => {
             </div>
             <div>
               <p className="text-[#ababab] text-sm">Avg. per Expense</p>
-              <p className="text-blue-400 text-2xl font-bold">₹{Math.round(totalExpenses / expenses.length).toLocaleString()}</p>
+              <p className="text-blue-400 text-2xl font-bold">PKR {Math.round(totalExpenses / expenses.length).toLocaleString()}</p>
             </div>
             <div>
               <p className="text-[#ababab] text-sm">Transactions</p>
@@ -118,7 +118,7 @@ const Expenses = () => {
           {categoryExpenses.map((cat) => (
             <div key={cat.category} className="bg-[#2a2a2a] rounded-lg p-3 border border-[#383838]">
               <p className="text-[#ababab] text-xs">{cat.category}</p>
-              <p className="text-yellow-400 font-bold mt-1">₹{cat.amount.toLocaleString()}</p>
+              <p className="text-yellow-400 font-bold mt-1">PKR {cat.amount.toLocaleString()}</p>
             </div>
           ))}
         </div>
@@ -146,7 +146,7 @@ const Expenses = () => {
                   </span>
                 </td>
                 <td className="px-4 py-3">{expense.description}</td>
-                <td className="px-4 py-3 text-red-400 font-bold">-₹{expense.amount.toLocaleString()}</td>
+                <td className="px-4 py-3 text-red-400 font-bold">-PKR {expense.amount.toLocaleString()}</td>
                 <td className="px-4 py-3 flex gap-2">
                   <button
                     onClick={() => handleEditExpense(expense)}

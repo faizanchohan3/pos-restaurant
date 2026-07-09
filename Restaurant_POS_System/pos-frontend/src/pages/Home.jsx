@@ -43,7 +43,7 @@ const Home = () => {
           </div>
           <div className="bg-[#2a2a2a] border border-[#383838] rounded-lg p-4">
             <p className="text-[#ababab] text-xs mb-1">Today's Revenue</p>
-            <p className="text-2xl font-bold text-green-400">₹8,500</p>
+            <p className="text-2xl font-bold text-green-400">PKR 8,500</p>
           </div>
           <div className="bg-[#2a2a2a] border border-[#383838] rounded-lg p-4">
             <p className="text-[#ababab] text-xs mb-1">Active Tables</p>
@@ -74,7 +74,7 @@ const Home = () => {
                       <p className="text-[#ababab] text-sm">Table {order}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-yellow-400 font-bold">₹{(Math.random() * 500 + 100).toFixed(0)}</p>
+                      <p className="text-yellow-400 font-bold">PKR {(Math.random() * 500 + 100).toFixed(0)}</p>
                       <p className="text-[#ababab] text-xs">
                         {order % 2 === 0 ? "Completed" : "In Progress"}
                       </p>

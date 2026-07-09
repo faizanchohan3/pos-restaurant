@@ -77,19 +77,19 @@ const Financial = () => {
               <div className="space-y-2 ml-4">
                 <div className="flex justify-between">
                   <span className="text-[#ababab]">Dine-In Sales</span>
-                  <span className="text-[#f5f5f5] font-semibold">₹{financialData.dineInRevenue.toLocaleString()}</span>
+                  <span className="text-[#f5f5f5] font-semibold">PKR {financialData.dineInRevenue.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[#ababab]">Delivery Sales</span>
-                  <span className="text-[#f5f5f5] font-semibold">₹{financialData.deliveryRevenue.toLocaleString()}</span>
+                  <span className="text-[#f5f5f5] font-semibold">PKR {financialData.deliveryRevenue.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[#ababab]">Takeaway Sales</span>
-                  <span className="text-[#f5f5f5] font-semibold">₹{financialData.takeawayRevenue.toLocaleString()}</span>
+                  <span className="text-[#f5f5f5] font-semibold">PKR {financialData.takeawayRevenue.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between border-t border-[#383838] pt-2 mt-2">
                   <span className="text-yellow-400 font-bold">Total Revenue</span>
-                  <span className="text-yellow-400 font-bold">₹{totalRevenue.toLocaleString()}</span>
+                  <span className="text-yellow-400 font-bold">PKR {totalRevenue.toLocaleString()}</span>
                 </div>
               </div>
             </div>
@@ -100,31 +100,31 @@ const Financial = () => {
               <div className="space-y-2 ml-4">
                 <div className="flex justify-between">
                   <span className="text-[#ababab]">Staff Salaries</span>
-                  <span className="text-[#f5f5f5] font-semibold">-₹{financialData.staffSalaries.toLocaleString()}</span>
+                  <span className="text-[#f5f5f5] font-semibold">-PKR {financialData.staffSalaries.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[#ababab]">Utilities</span>
-                  <span className="text-[#f5f5f5] font-semibold">-₹{financialData.utilities.toLocaleString()}</span>
+                  <span className="text-[#f5f5f5] font-semibold">-PKR {financialData.utilities.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[#ababab]">Maintenance</span>
-                  <span className="text-[#f5f5f5] font-semibold">-₹{financialData.maintenance.toLocaleString()}</span>
+                  <span className="text-[#f5f5f5] font-semibold">-PKR {financialData.maintenance.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[#ababab]">Supplies</span>
-                  <span className="text-[#f5f5f5] font-semibold">-₹{financialData.supplies.toLocaleString()}</span>
+                  <span className="text-[#f5f5f5] font-semibold">-PKR {financialData.supplies.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[#ababab]">Rent</span>
-                  <span className="text-[#f5f5f5] font-semibold">-₹{financialData.rent.toLocaleString()}</span>
+                  <span className="text-[#f5f5f5] font-semibold">-PKR {financialData.rent.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[#ababab]">Other Expenses</span>
-                  <span className="text-[#f5f5f5] font-semibold">-₹{financialData.otherExpenses.toLocaleString()}</span>
+                  <span className="text-[#f5f5f5] font-semibold">-PKR {financialData.otherExpenses.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between border-t border-[#383838] pt-2 mt-2">
                   <span className="text-red-400 font-bold">Total Expenses</span>
-                  <span className="text-red-400 font-bold">-₹{totalExpenses.toLocaleString()}</span>
+                  <span className="text-red-400 font-bold">-PKR {totalExpenses.toLocaleString()}</span>
                 </div>
               </div>
             </div>
@@ -134,7 +134,7 @@ const Financial = () => {
               <div className="flex justify-between items-center">
                 <div>
                   <p className="text-[#ababab] text-sm">NET PROFIT</p>
-                  <p className="text-green-400 text-3xl font-bold">₹{grossProfit.toLocaleString()}</p>
+                  <p className="text-green-400 text-3xl font-bold">PKR {grossProfit.toLocaleString()}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-[#ababab] text-sm">Profit Margin</p>
@@ -153,23 +153,23 @@ const Financial = () => {
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-[#ababab]">Cash in Hand</span>
-                <span className="text-[#f5f5f5]">₹{financialData.cashInHand.toLocaleString()}</span>
+                <span className="text-[#f5f5f5]">PKR {financialData.cashInHand.toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[#ababab]">Bank Balance</span>
-                <span className="text-[#f5f5f5]">₹{financialData.bankBalance.toLocaleString()}</span>
+                <span className="text-[#f5f5f5]">PKR {financialData.bankBalance.toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[#ababab]">Inventory</span>
-                <span className="text-[#f5f5f5]">₹{financialData.inventory.toLocaleString()}</span>
+                <span className="text-[#f5f5f5]">PKR {financialData.inventory.toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[#ababab]">Equipment & Fixed Assets</span>
-                <span className="text-[#f5f5f5]">₹{financialData.equipment.toLocaleString()}</span>
+                <span className="text-[#f5f5f5]">PKR {financialData.equipment.toLocaleString()}</span>
               </div>
               <div className="flex justify-between border-t border-[#383838] pt-2 mt-2 font-bold">
                 <span className="text-blue-400">Total Assets</span>
-                <span className="text-blue-400">₹{totalAssets.toLocaleString()}</span>
+                <span className="text-blue-400">PKR {totalAssets.toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -180,19 +180,19 @@ const Financial = () => {
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-[#ababab]">Vendor Payables</span>
-                <span className="text-[#f5f5f5]">-₹{financialData.vendorPayables.toLocaleString()}</span>
+                <span className="text-[#f5f5f5]">-PKR {financialData.vendorPayables.toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[#ababab]">Loan Outstanding</span>
-                <span className="text-[#f5f5f5]">-₹{financialData.loanOutstanding.toLocaleString()}</span>
+                <span className="text-[#f5f5f5]">-PKR {financialData.loanOutstanding.toLocaleString()}</span>
               </div>
               <div className="flex justify-between border-t border-[#383838] pt-2 mt-2">
                 <span className="text-orange-400 font-semibold">Total Liabilities</span>
-                <span className="text-orange-400 font-semibold">-₹{totalLiabilities.toLocaleString()}</span>
+                <span className="text-orange-400 font-semibold">-PKR {totalLiabilities.toLocaleString()}</span>
               </div>
               <div className="flex justify-between border-t-2 border-[#383838] pt-3 mt-3 font-bold">
                 <span className="text-green-400">Net Equity</span>
-                <span className="text-green-400">₹{netEquity.toLocaleString()}</span>
+                <span className="text-green-400">PKR {netEquity.toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -202,19 +202,19 @@ const Financial = () => {
         <div className="grid grid-cols-4 gap-4">
           <div className="bg-[#2a2a2a] rounded-lg p-4 border border-[#383838]">
             <p className="text-[#ababab] text-sm mb-2">Revenue</p>
-            <p className="text-yellow-400 text-2xl font-bold">₹{totalRevenue.toLocaleString()}</p>
+            <p className="text-yellow-400 text-2xl font-bold">PKR {totalRevenue.toLocaleString()}</p>
           </div>
           <div className="bg-[#2a2a2a] rounded-lg p-4 border border-[#383838]">
             <p className="text-[#ababab] text-sm mb-2">Expenses</p>
-            <p className="text-red-400 text-2xl font-bold">₹{totalExpenses.toLocaleString()}</p>
+            <p className="text-red-400 text-2xl font-bold">PKR {totalExpenses.toLocaleString()}</p>
           </div>
           <div className="bg-[#2a2a2a] rounded-lg p-4 border border-[#383838]">
             <p className="text-[#ababab] text-sm mb-2">Net Profit</p>
-            <p className="text-green-400 text-2xl font-bold">₹{grossProfit.toLocaleString()}</p>
+            <p className="text-green-400 text-2xl font-bold">PKR {grossProfit.toLocaleString()}</p>
           </div>
           <div className="bg-[#2a2a2a] rounded-lg p-4 border border-[#383838]">
             <p className="text-[#ababab] text-sm mb-2">Net Worth</p>
-            <p className="text-blue-400 text-2xl font-bold">₹{netEquity.toLocaleString()}</p>
+            <p className="text-blue-400 text-2xl font-bold">PKR {netEquity.toLocaleString()}</p>
           </div>
         </div>
       </div>

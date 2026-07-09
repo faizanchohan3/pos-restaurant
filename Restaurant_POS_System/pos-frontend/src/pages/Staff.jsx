@@ -102,11 +102,11 @@ const Staff = () => {
             </div>
             <div>
               <p className="text-[#ababab] text-sm">Monthly Salaries</p>
-              <p className="text-yellow-400 text-2xl font-bold">₹{totalSalaries.toLocaleString()}</p>
+              <p className="text-yellow-400 text-2xl font-bold">PKR {totalSalaries.toLocaleString()}</p>
             </div>
             <div>
               <p className="text-[#ababab] text-sm">Average Salary</p>
-              <p className="text-green-400 text-2xl font-bold">₹{Math.round(totalSalaries / staff.length).toLocaleString()}</p>
+              <p className="text-green-400 text-2xl font-bold">PKR {Math.round(totalSalaries / staff.length).toLocaleString()}</p>
             </div>
           </div>
         </div>
@@ -131,7 +131,7 @@ const Staff = () => {
               <tr key={member.id} className="border-b border-[#383838] hover:bg-[#2a2a2a]">
                 <td className="px-4 py-3 text-[#f5f5f5] font-semibold">{member.name}</td>
                 <td className="px-4 py-3">{member.position}</td>
-                <td className="px-4 py-3 text-yellow-400 font-bold">₹{member.salary.toLocaleString()}</td>
+                <td className="px-4 py-3 text-yellow-400 font-bold">PKR {member.salary.toLocaleString()}</td>
                 <td className="px-4 py-3">{member.phone}</td>
                 <td className="px-4 py-3 text-sm">{member.email}</td>
                 <td className="px-4 py-3 text-sm">{member.joinDate}</td>

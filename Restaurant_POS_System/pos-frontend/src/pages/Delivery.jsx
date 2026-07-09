@@ -98,7 +98,7 @@ const Delivery = () => {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-yellow-400 font-bold text-xl">₹{order.total}</p>
+                  <p className="text-yellow-400 font-bold text-xl">PKR {order.total}</p>
                   <p className="text-[#ababab] text-sm">{order.items} items</p>
                 </div>
               </div>

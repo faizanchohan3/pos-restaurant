@@ -108,7 +108,7 @@ const AdminDashboard = () => {
           </div>
           <div className="bg-[#2a2a2a] border border-[#383838] rounded-lg p-6">
             <p className="text-[#ababab] text-sm mb-2">Today's Revenue</p>
-            <p className="text-3xl font-bold text-yellow-400">₹5,240</p>
+            <p className="text-3xl font-bold text-yellow-400">PKR 5,240</p>
           </div>
         </div>
       </div>

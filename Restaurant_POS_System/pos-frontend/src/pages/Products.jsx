@@ -117,7 +117,7 @@ const Products = () => {
             </div>
             <div>
               <p className="text-[#ababab] text-sm">Avg Price</p>
-              <p className="text-green-400 text-2xl font-bold">₹{shopProducts.length > 0 ? Math.round(shopProducts.reduce((sum, p) => sum + p.price, 0) / shopProducts.length).toLocaleString() : 0}</p>
+              <p className="text-green-400 text-2xl font-bold">PKR {shopProducts.length > 0 ? Math.round(shopProducts.reduce((sum, p) => sum + p.price, 0) / shopProducts.length).toLocaleString() : 0}</p>
             </div>
           </div>
         </div>
@@ -160,7 +160,7 @@ const Products = () => {
                         {product.category}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-yellow-400 font-bold">₹{product.price.toLocaleString()}</td>
+                    <td className="px-6 py-4 text-yellow-400 font-bold">PKR {product.price.toLocaleString()}</td>
                     <td className="px-6 py-4 text-sm text-[#ababab]">{product.description}</td>
                     <td className="px-6 py-4 flex gap-2">
                       <button
