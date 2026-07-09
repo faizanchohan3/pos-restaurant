@@ -38,11 +38,16 @@ const Auth = () => {
           <h1 className="text-lg font-semibold text-[#f5f5f5] tracking-wide">Restro</h1>
         </div>
 
-        <h2 className="text-4xl text-center mt-10 font-semibold text-yellow-400 mb-10">
-          {isRegister ? "Employee Registration" : "Employee Login"}
+        <h2 className="text-4xl text-center mt-10 font-semibold text-yellow-400 mb-2">
+          {isRegister ? "👤 Employee Registration" : "🔐 Employee Login"}
         </h2>
+        <p className="text-center text-[#ababab] text-sm mb-8">
+          {isRegister
+            ? "Create your staff account"
+            : "Sign in to your account to access POS"}
+        </p>
 
-        {/* Components */}  
+        {/* Components */}
         {isRegister ? <Register setIsRegister={setIsRegister} /> : <Login />}
 
 

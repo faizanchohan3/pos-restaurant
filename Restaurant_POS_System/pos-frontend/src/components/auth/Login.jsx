@@ -5,22 +5,26 @@ import { enqueueSnackbar } from "notistack";
 import { useDispatch } from "react-redux";
 import { setUser } from "../../redux/slices/userSlice";
 import { useNavigate } from "react-router-dom";
- 
+
 const Login = () => {
     const navigate = useNavigate();
     const dispatch = useDispatch();
-    const[formData, setFormData] = useState({
+    const [formData, setFormData] = useState({
       email: "",
       password: "",
     });
-  
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     const handleChange = (e) => {
       setFormData({...formData, [e.target.name]: e.target.value});
     }
 
-  
     const handleSubmit = (e) => {
       e.preventDefault();
+      if (!formData.email || !formData.password) {
+        enqueueSnackbar("Please fill all fields", { variant: "warning" });
+        return;
+      }
       loginMutation.mutate(formData);
     }
 
@@ -28,25 +32,47 @@ const Login = () => {
       mutationFn: (reqData) => login(reqData),
       onSuccess: (res) => {
           const { data } = res;
-          console.log(data);
+          console.log("Login successful:", data);
           const { _id, name, email, phone, role } = data.data;
+
+          // Dispatch user to Redux
           dispatch(setUser({ _id, name, email, phone, role }));
-          navigate("/");
+
+          // Show success message
+          enqueueSnackbar(`Welcome ${name}! Redirecting to dashboard...`, { variant: "success" });
+
+          // Set shop if it's an Admin
+          if (role === "Admin") {
+            localStorage.setItem("selectedShop", "1");
+          }
+
+          // Redirect after a brief delay so user sees the success message
+          setTimeout(() => {
+            navigate("/");
+          }, 800);
       },
       onError: (error) => {
-        const { response } = error;
-        enqueueSnackbar(response.data.message, { variant: "error" });
+        const message = error.response?.data?.message || "Login failed. Please check your credentials.";
+        enqueueSnackbar(message, { variant: "error" });
+        setIsSubmitting(false);
       }
     })
 
   return (
     <div>
       <form onSubmit={handleSubmit}>
+        {/* Demo Credentials Info */}
+        <div className="bg-[#2a2a2a] border border-yellow-600 rounded-lg p-4 mb-6">
+          <p className="text-yellow-400 text-sm font-bold mb-2">📝 Demo Credentials:</p>
+          <p className="text-[#ababab] text-xs">Email: test@admin.com</p>
+          <p className="text-[#ababab] text-xs">Password: admin123</p>
+        </div>
+
         <div>
           <label className="block text-[#ababab] mb-2 mt-3 text-sm font-medium">
             Employee Email
           </label>
-          <div className="flex item-center rounded-lg p-5 px-4 bg-[#1f1f1f]">
+          <div className="flex item-center rounded-lg p-5 px-4 bg-[#1f1f1f] border border-[#383838] focus-within:border-yellow-400">
             <input
               type="email"
               name="email"
@@ -62,7 +88,7 @@ const Login = () => {
           <label className="block text-[#ababab] mb-2 mt-3 text-sm font-medium">
             Password
           </label>
-          <div className="flex item-center rounded-lg p-5 px-4 bg-[#1f1f1f]">
+          <div className="flex item-center rounded-lg p-5 px-4 bg-[#1f1f1f] border border-[#383838] focus-within:border-yellow-400">
             <input
               type="password"
               name="password"
@@ -77,10 +103,18 @@ const Login = () => {
 
         <button
           type="submit"
-          className="w-full rounded-lg mt-6 py-3 text-lg bg-yellow-400 text-gray-900 font-bold"
+          disabled={loginMutation.isPending}
+          className="w-full rounded-lg mt-6 py-3 text-lg bg-yellow-400 text-gray-900 font-bold hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed transition"
         >
-          Sign in
+          {loginMutation.isPending ? "🔄 Signing in..." : "✓ Sign In"}
         </button>
+
+        {/* Status Message */}
+        {loginMutation.isPending && (
+          <div className="mt-4 p-3 bg-blue-900 border border-blue-600 rounded-lg text-blue-200 text-sm text-center">
+            🔐 Authenticating... Please wait
+          </div>
+        )}
       </form>
     </div>
   );

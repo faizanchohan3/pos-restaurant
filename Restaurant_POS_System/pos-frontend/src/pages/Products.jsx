@@ -124,58 +124,66 @@ const Products = () => {
       </div>
 
       {/* Products Table */}
-      <div className="flex-1 overflow-auto px-10 pb-4">
-        <table className="w-full text-left text-[#ababab]">
-          <thead className="sticky top-0 bg-[#2a2a2a]">
-            <tr className="border-b border-[#383838]">
-              <th className="px-4 py-3 text-[#f5f5f5]">Image</th>
-              <th className="px-4 py-3 text-[#f5f5f5]">Product Name</th>
-              <th className="px-4 py-3 text-[#f5f5f5]">Category</th>
-              <th className="px-4 py-3 text-[#f5f5f5]">Price</th>
-              <th className="px-4 py-3 text-[#f5f5f5]">Description</th>
-              <th className="px-4 py-3 text-[#f5f5f5]">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {shopProducts.length === 0 ? (
+      <div className="flex-1 overflow-y-auto px-10 pb-8 bg-[#1f1f1f]">
+        <div className="rounded-lg border border-[#383838] overflow-hidden">
+          <table className="w-full text-left text-[#ababab] bg-[#1f1f1f]">
+            <thead className="sticky top-0 bg-[#2a2a2a] z-10 border-b-2 border-[#383838]">
               <tr>
-                <td colSpan="6" className="px-4 py-8 text-center text-[#ababab]">
-                  No products in this shop yet. Click "Add Product" to get started!
-                </td>
+                <th className="px-6 py-4 text-[#f5f5f5] font-semibold text-sm">Image</th>
+                <th className="px-6 py-4 text-[#f5f5f5] font-semibold text-sm">Product Name</th>
+                <th className="px-6 py-4 text-[#f5f5f5] font-semibold text-sm">Category</th>
+                <th className="px-6 py-4 text-[#f5f5f5] font-semibold text-sm">Price</th>
+                <th className="px-6 py-4 text-[#f5f5f5] font-semibold text-sm">Description</th>
+                <th className="px-6 py-4 text-[#f5f5f5] font-semibold text-sm">Actions</th>
               </tr>
-            ) : (
-              shopProducts.map((product) => (
-                <tr key={product.id} className="border-b border-[#383838] hover:bg-[#2a2a2a]">
-                  <td className="px-4 py-3 text-3xl">{product.image}</td>
-                  <td className="px-4 py-3 text-[#f5f5f5] font-semibold">{product.name}</td>
-                  <td className="px-4 py-3">
-                    <span className="bg-[#383838] text-[#f5f5f5] px-3 py-1 rounded text-sm">
-                      {product.category}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-yellow-400 font-bold">₹{product.price.toLocaleString()}</td>
-                  <td className="px-4 py-3 text-sm">{product.description}</td>
-                  <td className="px-4 py-3 flex gap-2">
-                    <button
-                      onClick={() => handleEditProduct(product)}
-                      className="bg-blue-600 hover:bg-blue-700 p-2 rounded text-white"
-                      title="Edit"
-                    >
-                      <FiEdit2 size={16} />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteProduct(product.id)}
-                      className="bg-red-600 hover:bg-red-700 p-2 rounded text-white"
-                      title="Delete"
-                    >
-                      <FiTrash2 size={16} />
-                    </button>
+            </thead>
+            <tbody>
+              {shopProducts.length === 0 ? (
+                <tr>
+                  <td colSpan="6" className="px-6 py-12 text-center text-[#ababab]">
+                    <div className="flex flex-col items-center justify-center">
+                      <p className="text-lg mb-4">📦 No products in this shop yet</p>
+                      <p className="text-sm">Click "Add Product" button to add your first item!</p>
+                    </div>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                shopProducts.map((product, index) => (
+                  <tr
+                    key={product.id}
+                    className="border-b border-[#383838] hover:bg-[#2a2a2a] transition even:bg-[#2a2a2a] even:bg-opacity-30"
+                  >
+                    <td className="px-6 py-4 text-3xl">{product.image}</td>
+                    <td className="px-6 py-4 text-[#f5f5f5] font-semibold">{product.name}</td>
+                    <td className="px-6 py-4">
+                      <span className="bg-blue-900 text-blue-200 px-3 py-1 rounded text-xs font-semibold">
+                        {product.category}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-yellow-400 font-bold">₹{product.price.toLocaleString()}</td>
+                    <td className="px-6 py-4 text-sm text-[#ababab]">{product.description}</td>
+                    <td className="px-6 py-4 flex gap-2">
+                      <button
+                        onClick={() => handleEditProduct(product)}
+                        className="bg-blue-600 hover:bg-blue-700 p-2 rounded text-white transition"
+                        title="Edit"
+                      >
+                        <FiEdit2 size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteProduct(product.id)}
+                        className="bg-red-600 hover:bg-red-700 p-2 rounded text-white transition"
+                        title="Delete"
+                      >
+                        <FiTrash2 size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Add/Edit Product Modal */}
