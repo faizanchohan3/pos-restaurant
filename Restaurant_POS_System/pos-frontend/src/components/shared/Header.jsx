@@ -17,15 +17,27 @@ const Header = () => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
+    // Clear Redux state first
     dispatch(removeUser());
-    localStorage.removeItem("selectedShop");
-    localStorage.removeItem("shopSession");
-    localStorage.removeItem("superAdminSession");
-    enqueueSnackbar("Logged out successfully!", { variant: "success" });
+
+    // Clear all localStorage items
+    const keysToRemove = [
+      "userSession",
+      "selectedShop",
+      "shopSession",
+      "superAdminSession",
+      "staffSession",
+    ];
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+
+    // Show success message
+    enqueueSnackbar("✓ Logged out successfully!", { variant: "success" });
+
+    // Redirect and reload
     setTimeout(() => {
       navigate("/auth");
-      window.location.reload();
-    }, 500);
+      window.location.replace("/auth"); // Use replace to prevent back button access
+    }, 600);
   };
 
   return (

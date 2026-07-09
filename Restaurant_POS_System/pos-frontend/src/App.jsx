@@ -4,19 +4,34 @@ import {
   Route,
   useLocation,
   Navigate,
+  useEffect,
 } from "react-router-dom";
 import { Home, Auth, Orders, Tables, Menu, Dashboard, Stock, Delivery, Staff, Expenses, Financial, ShopManagement, Categories, Products, ShopLogin, SuperAdminLogin, SuperAdminDashboard, StaffLogin, StaffManagement, LoginOptions } from "./pages";
 import Header from "./components/shared/Header";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import useLoadData from "./hooks/useLoadData";
 import FullScreenLoader from "./components/shared/FullScreenLoader"
 import ProtectedAdminRoute from "./components/ProtectedAdminRoute";
+import { restoreUser } from "./redux/slices/userSlice";
 
 function Layout() {
+  const dispatch = useDispatch();
   const isLoading = useLoadData();
   const location = useLocation();
   const hideHeaderRoutes = ["/auth", "/superadmin-login", "/shop-login", "/staff-login"];
   const { isAuth } = useSelector(state => state.user);
+
+  // Restore user state on app load
+  useEffect(() => {
+    const savedUser = localStorage.getItem("userSession");
+    if (savedUser && !isAuth) {
+      try {
+        dispatch(restoreUser());
+      } catch (error) {
+        console.error("Error restoring user:", error);
+      }
+    }
+  }, [dispatch, isAuth]);
 
   if(isLoading) return <FullScreenLoader />
 
