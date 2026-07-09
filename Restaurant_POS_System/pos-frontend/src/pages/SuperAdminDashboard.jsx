@@ -98,7 +98,10 @@ const SuperAdminDashboard = () => {
   const handleLogout = () => {
     localStorage.removeItem("superAdminSession");
     enqueueSnackbar("Logged out successfully!", { variant: "success" });
-    setTimeout(() => navigate("/superadmin-login"), 1000);
+    setTimeout(() => {
+      navigate("/superadmin-login");
+      window.location.reload();
+    }, 500);
   };
 
   return (

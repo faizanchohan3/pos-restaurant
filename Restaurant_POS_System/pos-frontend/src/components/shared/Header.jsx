@@ -5,32 +5,27 @@ import { FaBell } from "react-icons/fa";
 import logo from "../../assets/images/logo.png";
 import { useDispatch, useSelector } from "react-redux";
 import { IoLogOut } from "react-icons/io5";
-import { useMutation } from "@tanstack/react-query";
-import { logout } from "../../https";
 import { removeUser } from "../../redux/slices/userSlice";
 import { useNavigate } from "react-router-dom";
 import { MdDashboard } from "react-icons/md";
 import ShopSelector from "../ShopSelector";
+import { enqueueSnackbar } from "notistack";
 
 const Header = () => {
   const userData = useSelector((state) => state.user);
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const logoutMutation = useMutation({
-    mutationFn: () => logout(),
-    onSuccess: (data) => {
-      console.log(data);
-      dispatch(removeUser());
-      navigate("/auth");
-    },
-    onError: (error) => {
-      console.log(error);
-    },
-  });
-
   const handleLogout = () => {
-    logoutMutation.mutate();
+    dispatch(removeUser());
+    localStorage.removeItem("selectedShop");
+    localStorage.removeItem("shopSession");
+    localStorage.removeItem("superAdminSession");
+    enqueueSnackbar("Logged out successfully!", { variant: "success" });
+    setTimeout(() => {
+      navigate("/auth");
+      window.location.reload();
+    }, 500);
   };
 
   return (
