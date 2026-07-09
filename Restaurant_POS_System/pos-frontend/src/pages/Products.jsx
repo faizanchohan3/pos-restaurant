@@ -2,17 +2,21 @@ import React, { useState, useEffect } from "react";
 import BottomNav from "../components/shared/BottomNav";
 import BackButton from "../components/shared/BackButton";
 import { enqueueSnackbar } from "notistack";
-import { FiTrash2, FiEdit2 } from "react-icons/fi";
+import { FiTrash2, FiEdit2, FiPlus } from "react-icons/fi";
 import { useSelector } from "react-redux";
 import { Navigate } from "react-router-dom";
 
 const Products = () => {
-  const { user } = useSelector(state => state.user);
+  const { user, role } = useSelector(state => state.user);
+  // Get current shop from localStorage
+  const currentShopId = parseInt(localStorage.getItem("selectedShop")) || 1;
+
   const [products, setProducts] = useState([
     { id: 1, name: "Paneer Tikka", category: "Appetizers", price: 280, image: "🍢", description: "Grilled paneer pieces", shop_id: 1 },
     { id: 2, name: "Butter Chicken", category: "Main Course", price: 380, image: "🍗", description: "Creamy chicken curry", shop_id: 1 },
     { id: 3, name: "Biryani", category: "Main Course", price: 320, image: "🍚", description: "Fragrant rice dish", shop_id: 1 },
     { id: 4, name: "Gulab Jamun", category: "Desserts", price: 150, image: "🍮", description: "Sweet milk solids", shop_id: 1 },
+    { id: 5, name: "Samosa", category: "Appetizers", price: 80, image: "🥟", description: "Crispy fried pastry", shop_id: 1 },
   ]);
   const [categories] = useState([
     { id: 1, name: "Appetizers" },
@@ -34,9 +38,12 @@ const Products = () => {
     document.title = "POS | Products";
   }, []);
 
-  if (user?.role !== "Admin") {
+  if (role !== "Admin") {
     return <Navigate to="/" />;
   }
+
+  // Filter products by current shop only
+  const shopProducts = products.filter(p => p.shop_id === currentShopId);
 
   const handleAddProduct = (e) => {
     e.preventDefault();
@@ -54,7 +61,7 @@ const Products = () => {
         id: Math.max(...products.map(p => p.id), 0) + 1,
         ...formData,
         price: parseFloat(formData.price),
-        shop_id: 1, // Current shop
+        shop_id: currentShopId, // Current shop only
       };
       setProducts([...products, newProduct]);
       enqueueSnackbar("Product added!", { variant: "success" });
@@ -101,8 +108,8 @@ const Products = () => {
         <div className="bg-[#2a2a2a] rounded-lg p-4 border border-[#383838]">
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <p className="text-[#ababab] text-sm">Total Products</p>
-              <p className="text-white text-2xl font-bold">{products.length}</p>
+              <p className="text-[#ababab] text-sm">Shop Products (Shop ID: {currentShopId})</p>
+              <p className="text-white text-2xl font-bold">{shopProducts.length}</p>
             </div>
             <div>
               <p className="text-[#ababab] text-sm">Total Categories</p>
@@ -110,7 +117,7 @@ const Products = () => {
             </div>
             <div>
               <p className="text-[#ababab] text-sm">Avg Price</p>
-              <p className="text-green-400 text-2xl font-bold">₹{Math.round(products.reduce((sum, p) => sum + p.price, 0) / products.length).toLocaleString()}</p>
+              <p className="text-green-400 text-2xl font-bold">₹{shopProducts.length > 0 ? Math.round(shopProducts.reduce((sum, p) => sum + p.price, 0) / shopProducts.length).toLocaleString() : 0}</p>
             </div>
           </div>
         </div>
@@ -130,35 +137,43 @@ const Products = () => {
             </tr>
           </thead>
           <tbody>
-            {products.map((product) => (
-              <tr key={product.id} className="border-b border-[#383838] hover:bg-[#2a2a2a]">
-                <td className="px-4 py-3 text-3xl">{product.image}</td>
-                <td className="px-4 py-3 text-[#f5f5f5] font-semibold">{product.name}</td>
-                <td className="px-4 py-3">
-                  <span className="bg-[#383838] text-[#f5f5f5] px-3 py-1 rounded text-sm">
-                    {product.category}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-yellow-400 font-bold">₹{product.price.toLocaleString()}</td>
-                <td className="px-4 py-3 text-sm">{product.description}</td>
-                <td className="px-4 py-3 flex gap-2">
-                  <button
-                    onClick={() => handleEditProduct(product)}
-                    className="bg-blue-600 hover:bg-blue-700 p-2 rounded text-white"
-                    title="Edit"
-                  >
-                    <FiEdit2 size={16} />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteProduct(product.id)}
-                    className="bg-red-600 hover:bg-red-700 p-2 rounded text-white"
-                    title="Delete"
-                  >
-                    <FiTrash2 size={16} />
-                  </button>
+            {shopProducts.length === 0 ? (
+              <tr>
+                <td colSpan="6" className="px-4 py-8 text-center text-[#ababab]">
+                  No products in this shop yet. Click "Add Product" to get started!
                 </td>
               </tr>
-            ))}
+            ) : (
+              shopProducts.map((product) => (
+                <tr key={product.id} className="border-b border-[#383838] hover:bg-[#2a2a2a]">
+                  <td className="px-4 py-3 text-3xl">{product.image}</td>
+                  <td className="px-4 py-3 text-[#f5f5f5] font-semibold">{product.name}</td>
+                  <td className="px-4 py-3">
+                    <span className="bg-[#383838] text-[#f5f5f5] px-3 py-1 rounded text-sm">
+                      {product.category}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-yellow-400 font-bold">₹{product.price.toLocaleString()}</td>
+                  <td className="px-4 py-3 text-sm">{product.description}</td>
+                  <td className="px-4 py-3 flex gap-2">
+                    <button
+                      onClick={() => handleEditProduct(product)}
+                      className="bg-blue-600 hover:bg-blue-700 p-2 rounded text-white"
+                      title="Edit"
+                    >
+                      <FiEdit2 size={16} />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteProduct(product.id)}
+                      className="bg-red-600 hover:bg-red-700 p-2 rounded text-white"
+                      title="Delete"
+                    >
+                      <FiTrash2 size={16} />
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
