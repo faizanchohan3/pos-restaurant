@@ -11,6 +11,9 @@ const StaffManagement = () => {
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingStaff, setEditingStaff] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
+  const itemsPerPage = 10;
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -211,6 +214,20 @@ const StaffManagement = () => {
           </button>
         </div>
 
+        {/* Search Bar */}
+        <div className="mb-6">
+          <input
+            type="text"
+            placeholder="Search staff by name or email..."
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="w-full bg-[#2a2a2a] text-white px-4 py-2 rounded-lg focus:outline-none border border-[#383838] focus:border-yellow-500"
+          />
+        </div>
+
         {/* Staff List */}
         {loading && !showModal ? (
           <div className="text-center text-[#ababab] py-8">Loading...</div>
@@ -225,8 +242,20 @@ const StaffManagement = () => {
             </button>
           </div>
         ) : (
-          <div className="grid gap-4">
-            {staff.map((member) => (
+          <>
+            <div className="grid gap-4 max-h-96 overflow-y-auto">
+              {staff
+                .filter(
+                  (member) =>
+                    member.name
+                      .toLowerCase()
+                      .includes(searchTerm.toLowerCase()) ||
+                    member.email
+                      .toLowerCase()
+                      .includes(searchTerm.toLowerCase())
+                )
+                .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                .map((member) => (
               <div
                 key={member.id}
                 className="bg-[#2a2a2a] border border-[#383838] rounded-lg p-6 hover:border-yellow-500 transition"
@@ -278,7 +307,82 @@ const StaffManagement = () => {
                 </div>
               </div>
             ))}
-          </div>
+            </div>
+
+            {/* Pagination */}
+            {staff.filter(
+              (member) =>
+                member.name
+                  .toLowerCase()
+                  .includes(searchTerm.toLowerCase()) ||
+                member.email
+                  .toLowerCase()
+                  .includes(searchTerm.toLowerCase())
+            ).length > itemsPerPage && (
+              <div className="flex justify-between items-center mt-6 pt-6 border-t border-[#383838]">
+                <button
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.max(prev - 1, 1))
+                  }
+                  disabled={currentPage === 1}
+                  className="bg-[#383838] hover:bg-[#484848] disabled:opacity-50 text-white font-bold py-2 px-4 rounded-lg transition"
+                >
+                  ← Previous
+                </button>
+                <span className="text-[#ababab]">
+                  Page {currentPage} of{" "}
+                  {Math.ceil(
+                    staff.filter(
+                      (member) =>
+                        member.name
+                          .toLowerCase()
+                          .includes(searchTerm.toLowerCase()) ||
+                        member.email
+                          .toLowerCase()
+                          .includes(searchTerm.toLowerCase())
+                    ).length / itemsPerPage
+                  )}
+                </span>
+                <button
+                  onClick={() =>
+                    setCurrentPage((prev) =>
+                      Math.min(
+                        prev + 1,
+                        Math.ceil(
+                          staff.filter(
+                            (member) =>
+                              member.name
+                                .toLowerCase()
+                                .includes(searchTerm.toLowerCase()) ||
+                              member.email
+                                .toLowerCase()
+                                .includes(searchTerm.toLowerCase())
+                          ).length / itemsPerPage
+                        )
+                      )
+                    )
+                  }
+                  disabled={
+                    currentPage ===
+                    Math.ceil(
+                      staff.filter(
+                        (member) =>
+                          member.name
+                            .toLowerCase()
+                            .includes(searchTerm.toLowerCase()) ||
+                          member.email
+                            .toLowerCase()
+                            .includes(searchTerm.toLowerCase())
+                      ).length / itemsPerPage
+                    )
+                  }
+                  className="bg-[#383838] hover:bg-[#484848] disabled:opacity-50 text-white font-bold py-2 px-4 rounded-lg transition"
+                >
+                  Next →
+                </button>
+              </div>
+            )}
+          </>
         )}
 
         {/* Add/Edit Modal */}
