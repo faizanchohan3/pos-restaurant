@@ -37,12 +37,12 @@ const MenuContainer = () => {
 
   return (
     <>
-      <div className="grid grid-cols-4 gap-4 px-10 py-4 w-[100%]">
+      <div className="grid grid-cols-6 gap-2 px-10 py-3 w-[100%] overflow-x-auto">
         {menus.map((menu) => {
           return (
             <div
               key={menu.id}
-              className="flex flex-col items-start justify-between p-4 rounded-lg h-[100px] cursor-pointer"
+              className="flex flex-col items-start justify-between p-2 rounded-lg h-[70px] cursor-pointer hover:opacity-80 transition flex-shrink-0"
               style={{ backgroundColor: menu.bgColor }}
               onClick={() => {
                 setSelected(menu);
@@ -51,15 +51,15 @@ const MenuContainer = () => {
               }}
             >
               <div className="flex items-center justify-between w-full">
-                <h1 className="text-[#f5f5f5] text-lg font-semibold">
+                <h1 className="text-[#f5f5f5] text-xs font-semibold">
                   {menu.icon} {menu.name}
                 </h1>
                 {selected.id === menu.id && (
-                  <GrRadialSelected className="text-white" size={20} />
+                  <GrRadialSelected className="text-white" size={14} />
                 )}
               </div>
-              <p className="text-[#ababab] text-sm font-semibold">
-                {menu.items.length} Items
+              <p className="text-[#ababab] text-xs font-semibold">
+                {menu.items.length}
               </p>
             </div>
           );
