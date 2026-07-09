@@ -6,7 +6,7 @@ import {
   useLocation,
   Navigate,
 } from "react-router-dom";
-import { Home, Auth, Orders, Tables, Menu, Dashboard, Stock, Delivery, Staff, Expenses, Financial, ShopManagement, Categories, Products, ShopLogin, SuperAdminLogin, SuperAdminDashboard, StaffLogin, StaffManagement, LoginOptions } from "./pages";
+import { Home, Auth, Orders, Tables, Menu, Dashboard, Stock, Delivery, Staff, Expenses, Financial, ShopManagement, Categories, Products, SuperAdminDashboard, StaffManagement, LoginOptions } from "./pages";
 import Header from "./components/shared/Header";
 import { useSelector, useDispatch } from "react-redux";
 import useLoadData from "./hooks/useLoadData";
@@ -52,16 +52,13 @@ function Layout() {
           }
         />
         <Route path="/auth" element={isAuth ? <Navigate to="/" /> : <Auth />} />
-        <Route path="/shop-login" element={<ShopLogin />} />
-        <Route path="/staff-login" element={<StaffLogin />} />
-        <Route path="/superadmin-login" element={<SuperAdminLogin />} />
         <Route
           path="/superadmin"
           element={
             localStorage.getItem("superAdminSession") ? (
               <SuperAdminDashboard />
             ) : (
-              <Navigate to="/superadmin-login" />
+              <Navigate to="/auth" />
             )
           }
         />
