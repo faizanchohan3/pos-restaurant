@@ -19,7 +19,7 @@ const LoginOptions = () => {
         </div>
 
         {/* Login Options Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           {/* User Login */}
           <div
             onClick={() => navigate("/auth")}
@@ -53,15 +53,36 @@ const LoginOptions = () => {
               Shop Login
             </h2>
             <p className="text-[#ababab] mb-6">
-              Login as a shop owner to access your restaurant's complete
-              management dashboard.
+              Login as a shop owner to manage your restaurant.
             </p>
             <div className="space-y-2 mb-6">
-              <p className="text-yellow-400 text-sm">✓ Shop Dashboard</p>
+              <p className="text-yellow-400 text-sm">✓ Manage Staff</p>
               <p className="text-yellow-400 text-sm">✓ Products & Categories</p>
-              <p className="text-yellow-400 text-sm">✓ Staff & Expenses</p>
+              <p className="text-yellow-400 text-sm">✓ Financial Reports</p>
             </div>
             <button className="w-full bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-bold py-2 px-4 rounded-lg transition">
+              Continue →
+            </button>
+          </div>
+
+          {/* Staff Login */}
+          <div
+            onClick={() => navigate("/staff-login")}
+            className="bg-gradient-to-br from-[#2a2a2a] to-[#383838] border-2 border-green-500 rounded-xl p-8 cursor-pointer hover:border-green-400 transition transform hover:scale-105"
+          >
+            <div className="text-5xl mb-4">👥</div>
+            <h2 className="text-2xl font-bold text-[#f5f5f5] mb-3">
+              Staff Login
+            </h2>
+            <p className="text-[#ababab] mb-6">
+              Login as Cashier, Manager, or Staff to manage orders and operations.
+            </p>
+            <div className="space-y-2 mb-6">
+              <p className="text-green-400 text-sm">✓ Process Orders</p>
+              <p className="text-green-400 text-sm">✓ Manage Tables</p>
+              <p className="text-green-400 text-sm">✓ View Menu</p>
+            </div>
+            <button className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition">
               Continue →
             </button>
           </div>

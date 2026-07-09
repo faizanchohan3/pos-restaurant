@@ -5,7 +5,7 @@ import {
   useLocation,
   Navigate,
 } from "react-router-dom";
-import { Home, Auth, Orders, Tables, Menu, Dashboard, Stock, Delivery, Staff, Expenses, Financial, ShopManagement, Categories, Products, ShopLogin, SuperAdminLogin, SuperAdminDashboard, LoginOptions } from "./pages";
+import { Home, Auth, Orders, Tables, Menu, Dashboard, Stock, Delivery, Staff, Expenses, Financial, ShopManagement, Categories, Products, ShopLogin, SuperAdminLogin, SuperAdminDashboard, StaffLogin, StaffManagement, LoginOptions } from "./pages";
 import Header from "./components/shared/Header";
 import { useSelector } from "react-redux";
 import useLoadData from "./hooks/useLoadData";
@@ -15,7 +15,7 @@ import ProtectedAdminRoute from "./components/ProtectedAdminRoute";
 function Layout() {
   const isLoading = useLoadData();
   const location = useLocation();
-  const hideHeaderRoutes = ["/auth", "/superadmin-login", "/shop-login"];
+  const hideHeaderRoutes = ["/auth", "/superadmin-login", "/shop-login", "/staff-login"];
   const { isAuth } = useSelector(state => state.user);
 
   if(isLoading) return <FullScreenLoader />
@@ -38,6 +38,7 @@ function Layout() {
         />
         <Route path="/auth" element={isAuth ? <Navigate to="/" /> : <Auth />} />
         <Route path="/shop-login" element={<ShopLogin />} />
+        <Route path="/staff-login" element={<StaffLogin />} />
         <Route path="/superadmin-login" element={<SuperAdminLogin />} />
         <Route
           path="/superadmin"
@@ -142,6 +143,14 @@ function Layout() {
           element={
             <ProtectedAdminRoute>
               <Products />
+            </ProtectedAdminRoute>
+          }
+        />
+        <Route
+          path="/staff-management"
+          element={
+            <ProtectedAdminRoute>
+              <StaffManagement />
             </ProtectedAdminRoute>
           }
         />

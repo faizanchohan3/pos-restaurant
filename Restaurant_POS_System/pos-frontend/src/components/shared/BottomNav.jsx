@@ -150,14 +150,14 @@ const BottomNav = () => {
                 </button>
                 <button
                   onClick={() => {
-                    navigate("/staff");
+                    navigate("/staff-management");
                     setShowMoreMenu(false);
                   }}
                   className={`w-full text-left px-4 py-2 font-semibold text-sm ${
-                    isActive("/staff") ? "text-[#f5f5f5] bg-[#383838]" : "text-yellow-400"
+                    isActive("/staff-management") ? "text-[#f5f5f5] bg-[#383838]" : "text-yellow-400"
                   } hover:bg-[#383838] hover:text-yellow-400`}
                 >
-                  👥 Staff Management
+                  👥 Manage Staff
                 </button>
                 <button
                   onClick={() => {
