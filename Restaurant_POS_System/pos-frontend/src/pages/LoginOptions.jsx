@@ -9,11 +9,11 @@ const LoginOptions = () => {
       <div className="w-full max-w-5xl">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold text-[#f5f5f5] mb-2">🏪 Restro</h1>
-          <p className="text-[#ababab] text-xl">
-            Restaurant Management System
+          <h1 className="text-5xl font-bold text-[#f5f5f5] mb-2">🍕 Steam Cafe</h1>
+          <p className="text-[#f5f5f5] text-lg font-semibold">
+            POS - Restaurant Management System
           </p>
-          <p className="text-[#808080] text-sm mt-2">
+          <p className="text-[#ababab] text-sm mt-2">
             Multi-Tenant Platform
           </p>
         </div>

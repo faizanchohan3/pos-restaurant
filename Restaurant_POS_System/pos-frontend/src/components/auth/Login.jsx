@@ -61,16 +61,9 @@ const Login = () => {
   return (
     <div>
       <form onSubmit={handleSubmit}>
-        {/* Demo Credentials Info */}
-        <div className="bg-[#2a2a2a] border border-yellow-600 rounded-lg p-4 mb-6">
-          <p className="text-yellow-400 text-sm font-bold mb-2">📝 Demo Credentials:</p>
-          <p className="text-[#ababab] text-xs">Email: test@admin.com</p>
-          <p className="text-[#ababab] text-xs">Password: admin123</p>
-        </div>
-
         <div>
           <label className="block text-[#ababab] mb-2 mt-3 text-sm font-medium">
-            Employee Email
+            Email
           </label>
           <div className="flex item-center rounded-lg p-5 px-4 bg-[#1f1f1f] border border-[#383838] focus-within:border-yellow-400">
             <input
@@ -78,7 +71,7 @@ const Login = () => {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              placeholder="Enter employee email"
+              placeholder="Enter email"
               className="bg-transparent flex-1 text-white focus:outline-none"
               required
             />

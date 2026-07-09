@@ -46,7 +46,7 @@ const Header = () => {
       <div onClick={() => navigate("/")} className="flex items-center gap-2 cursor-pointer">
         <img src={logo} className="h-8 w-8" alt="restro logo" />
         <h1 className="text-lg font-semibold text-[#f5f5f5] tracking-wide">
-          Restro
+          Steam Cafe
         </h1>
       </div>
 

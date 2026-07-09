@@ -94,8 +94,8 @@ const StaffLogin = () => {
       <div className="w-full max-w-md bg-[#2a2a2a] rounded-2xl border border-[#383838] p-8">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-[#f5f5f5] mb-2">👤 Restro</h1>
-          <p className="text-[#ababab]">Staff Login</p>
+          <h1 className="text-3xl font-bold text-[#f5f5f5] mb-2">👤 Steam Cafe</h1>
+          <p className="text-[#ababab]">Login</p>
         </div>
 
         {/* Login Form */}
@@ -142,12 +142,6 @@ const StaffLogin = () => {
               placeholder="Enter password"
               className="w-full bg-[#1f1f1f] text-white px-4 py-2 rounded-lg focus:outline-none border border-[#383838] focus:border-blue-400"
             />
-          </div>
-
-          <div className="mb-4 text-sm text-[#ababab]">
-            <p>Demo Credentials:</p>
-            <p className="text-[#808080]">Email: john@restaurant.com</p>
-            <p className="text-[#808080]">Password: staff123</p>
           </div>
 
           <button

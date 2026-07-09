@@ -1,10 +1,10 @@
+import { useEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   useLocation,
   Navigate,
-  useEffect,
 } from "react-router-dom";
 import { Home, Auth, Orders, Tables, Menu, Dashboard, Stock, Delivery, Staff, Expenses, Financial, ShopManagement, Categories, Products, ShopLogin, SuperAdminLogin, SuperAdminDashboard, StaffLogin, StaffManagement, LoginOptions } from "./pages";
 import Header from "./components/shared/Header";

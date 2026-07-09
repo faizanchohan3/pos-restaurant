@@ -7,6 +7,7 @@ import CustomerInfo from "../components/menu/CustomerInfo";
 import CartInfo from "../components/menu/CartInfo";
 import Bill from "../components/menu/Bill";
 import { useSelector } from "react-redux";
+import { getTotalPrice } from "../redux/slices/cartSlice";
 
 const Menu = () => {
 
@@ -15,6 +16,11 @@ const Menu = () => {
     }, [])
 
   const customerData = useSelector((state) => state.customer);
+  const cartData = useSelector((state) => state.cart);
+  const total = useSelector(getTotalPrice);
+  const taxRate = 5.25;
+  const tax = (total * taxRate) / 100;
+  const totalPriceWithTax = total + tax;
 
   return (
     <section className="bg-[#1f1f1f] min-h-screen flex flex-col pb-24">
@@ -26,15 +32,26 @@ const Menu = () => {
             🍽️ Menu
           </h1>
         </div>
-        <div className="flex items-center gap-3 cursor-pointer bg-[#1f1f1f] px-4 py-2 rounded-lg">
-          <MdRestaurantMenu className="text-[#f5f5f5] text-3xl" />
-          <div className="flex flex-col items-start">
-            <h1 className="text-sm text-[#f5f5f5] font-semibold">
-              {customerData.customerName || "Customer"}
-            </h1>
-            <p className="text-xs text-[#ababab]">
-              Table: {customerData.table?.tableNo || "N/A"}
-            </p>
+        <div className="flex items-center gap-6">
+          {/* Sticky Bill Total */}
+          {cartData.length > 0 && (
+            <div className="bg-[#f6b100] rounded-lg px-4 py-2 flex flex-col items-end">
+              <p className="text-xs text-[#1f1f1f] font-semibold">Total Bill</p>
+              <p className="text-xl text-[#1f1f1f] font-bold">
+                PKR {totalPriceWithTax.toFixed(2)}
+              </p>
+            </div>
+          )}
+          <div className="flex items-center gap-3 cursor-pointer bg-[#1f1f1f] px-4 py-2 rounded-lg">
+            <MdRestaurantMenu className="text-[#f5f5f5] text-3xl" />
+            <div className="flex flex-col items-start">
+              <h1 className="text-sm text-[#f5f5f5] font-semibold">
+                {customerData.customerName || "Customer"}
+              </h1>
+              <p className="text-xs text-[#ababab]">
+                Table: {customerData.table?.tableNo || "N/A"}
+              </p>
+            </div>
           </div>
         </div>
       </div>

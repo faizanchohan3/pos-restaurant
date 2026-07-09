@@ -120,7 +120,7 @@ const ShopLogin = () => {
       <div className="w-full max-w-md bg-[#2a2a2a] rounded-2xl border border-[#383838] p-8">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-[#f5f5f5] mb-2">🏪 Restro</h1>
+          <h1 className="text-3xl font-bold text-[#f5f5f5] mb-2">🏪 Steam Cafe</h1>
           <p className="text-[#ababab]">Restaurant Management System</p>
         </div>
 

@@ -1,10 +1,39 @@
-import React from "react";
+import React, { useState } from "react";
 import { FaCheckDouble, FaLongArrowAltRight } from "react-icons/fa";
 import { FaCircle } from "react-icons/fa";
 import { formatDateAndTime, getAvatarName } from "../../utils/index";
+import { updateOrderStatus } from "../../https/index";
+import { enqueueSnackbar } from "notistack";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 const OrderCard = ({ key, order }) => {
-  console.log(order);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const queryClient = useQueryClient();
+
+  const updateMutation = useMutation({
+    mutationFn: (newStatus) => updateOrderStatus({ orderId: order._id, orderStatus: newStatus }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      enqueueSnackbar("Order status updated!", { variant: "success" });
+      setIsUpdating(false);
+    },
+    onError: () => {
+      enqueueSnackbar("Failed to update order status", { variant: "error" });
+      setIsUpdating(false);
+    },
+  });
+
+  const handleStatusChange = (newStatus) => {
+    setIsUpdating(true);
+    updateMutation.mutate(newStatus);
+  };
+
+  const getNextStatuses = () => {
+    const statuses = ["In Progress", "Ready", "Delivered", "Completed"];
+    const currentIndex = statuses.indexOf(order.orderStatus);
+    return statuses.slice(currentIndex + 1);
+  };
+
   return (
     <div key={key} className="w-[500px] bg-[#262626] p-4 rounded-lg mb-4">
       <div className="flex items-center gap-5">
@@ -51,6 +80,26 @@ const OrderCard = ({ key, order }) => {
       <div className="flex items-center justify-between mt-4">
         <h1 className="text-[#f5f5f5] text-lg font-semibold">Total</h1>
         <p className="text-[#f5f5f5] text-lg font-semibold">PKR {order.bills.totalWithTax.toFixed(2)}</p>
+      </div>
+
+      {/* Status Change Buttons */}
+      <div className="flex gap-2 mt-4">
+        {getNextStatuses().map((status) => (
+          <button
+            key={status}
+            onClick={() => handleStatusChange(status)}
+            disabled={isUpdating}
+            className={`flex-1 py-2 px-3 rounded-lg text-sm font-semibold transition ${
+              status === "Ready"
+                ? "bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
+                : status === "Delivered"
+                ? "bg-green-600 hover:bg-green-700 text-white disabled:opacity-50"
+                : "bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50"
+            }`}
+          >
+            {isUpdating ? "..." : status}
+          </button>
+        ))}
       </div>
     </div>
   );
