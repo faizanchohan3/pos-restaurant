@@ -5,6 +5,7 @@ import { enqueueSnackbar } from "notistack";
 import { FiTrash2, FiEdit2 } from "react-icons/fi";
 import { useSelector } from "react-redux";
 import { Navigate } from "react-router-dom";
+import { createStaff, deleteStaff } from "../https/index";
 
 const Staff = () => {
   const { role } = useSelector(state => state.user);
@@ -34,7 +35,7 @@ const Staff = () => {
     document.title = "POS | Staff Management";
   }, []);
 
-  const handleAddStaff = (e) => {
+  const handleAddStaff = async (e) => {
     e.preventDefault();
     if (!formData.name || !formData.position || !formData.salary || !formData.phone) {
       enqueueSnackbar("Please fill all required fields", { variant: "warning" });
@@ -51,35 +52,55 @@ const Staff = () => {
       enqueueSnackbar("Staff updated successfully!", { variant: "success" });
       setEditingId(null);
     } else {
-      const newStaff = {
-        id: Math.max(...staff.map(s => s.id), 0) + 1,
-        ...formData,
-        salary: parseInt(formData.salary),
-      };
-      setStaff([...staff, newStaff]);
+      try {
+        // Get shopId from localStorage
+        const shopSession = JSON.parse(localStorage.getItem("shopSession") || "{}");
+        const shopId = shopSession.id || 1;
 
-      // Save to localStorage for staff login
-      const staffList = JSON.parse(localStorage.getItem("staffMembers") || "[]");
-      staffList.push({
-        id: newStaff.id,
-        name: formData.name,
-        email: formData.email,
-        password: formData.password,
-        position: formData.position,
-        role: formData.position, // Position is the role
-      });
-      localStorage.setItem("staffMembers", JSON.stringify(staffList));
+        // Call API to create staff
+        const response = await createStaff({
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          password: formData.password,
+          role: formData.position,
+          shopId: shopId,
+        });
 
-      enqueueSnackbar(`✅ Staff member added! They can login with email: ${formData.email}`, { variant: "success" });
+        const newStaff = response.data.data;
+        setStaff([...staff, { ...newStaff, position: newStaff.role, salary: parseInt(formData.salary), joinDate: formData.joinDate }]);
+
+        // Also save to localStorage for direct staff login
+        const staffList = JSON.parse(localStorage.getItem("staffMembers") || "[]");
+        staffList.push({
+          id: newStaff.id,
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          position: formData.position,
+          role: formData.position,
+        });
+        localStorage.setItem("staffMembers", JSON.stringify(staffList));
+
+        enqueueSnackbar(`✅ Staff member added! Email: ${formData.email}`, { variant: "success" });
+      } catch (error) {
+        enqueueSnackbar(error.response?.data?.message || "Failed to add staff member", { variant: "error" });
+        return;
+      }
     }
 
     setFormData({ name: "", position: "", salary: "", phone: "", email: "", joinDate: "", password: "" });
     setShowAddModal(false);
   };
 
-  const handleDeleteStaff = (id) => {
-    setStaff(staff.filter(s => s.id !== id));
-    enqueueSnackbar("Staff member deleted!", { variant: "success" });
+  const handleDeleteStaff = async (id) => {
+    try {
+      await deleteStaff(id);
+      setStaff(staff.filter(s => s.id !== id));
+      enqueueSnackbar("Staff member deleted!", { variant: "success" });
+    } catch (error) {
+      enqueueSnackbar("Failed to delete staff member", { variant: "error" });
+    }
   };
 
   const handleEditStaff = (staffMember) => {

@@ -25,3 +25,9 @@ export const addOrder = (data) => axiosWrapper.post("/api/order/", data);
 export const getOrders = () => axiosWrapper.get("/api/order");
 export const updateOrderStatus = ({ orderId, orderStatus }) =>
   axiosWrapper.put(`/api/order/${orderId}`, { orderStatus });
+
+// Staff Endpoints
+export const createStaff = (data) => axiosWrapper.post("/api/staff", data);
+export const getStaffByShop = (shopId) => axiosWrapper.get(`/api/staff/shop/${shopId}`);
+export const updateStaff = ({ staffId, ...data }) => axiosWrapper.put(`/api/staff/${staffId}`, data);
+export const deleteStaff = (staffId) => axiosWrapper.delete(`/api/staff/${staffId}`);
