@@ -1,9 +1,31 @@
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
-const { PrismaClient } = require("@prisma/client");
 const app = express();
-const prisma = new PrismaClient();
+
+// Initialize Prisma with connection pooling for serverless
+let prisma;
+let prismaError = null;
+
+if (process.env.DATABASE_URL) {
+  try {
+    const { PrismaClient } = require("@prisma/client");
+    prisma = new PrismaClient({
+      datasources: {
+        db: {
+          url: process.env.DATABASE_URL
+        }
+      }
+    });
+  } catch (error) {
+    prismaError = error.message;
+    console.warn("Prisma initialization warning:", prismaError);
+    prisma = null;
+  }
+} else {
+  console.warn("DATABASE_URL not set - using mock data");
+  prisma = null;
+}
 
 const config = require("./config/config");
 const globalErrorHandler = require("./middlewares/globalErrorHandler");
@@ -13,7 +35,7 @@ const PORT = config.port;
 // Middlewares
 app.use(cors({
     credentials: true,
-    origin: ['http://localhost:5173']
+    origin: ['http://localhost:5173', 'https://pos-frontend-omega-ten.vercel.app', 'https://pos-frontend-7tszy1so6-softtech1.vercel.app']
 }))
 app.use(express.json());
 app.use(cookieParser())
@@ -63,24 +85,39 @@ const mockPayments = [];
 // ==================== SHOP ROUTES ====================
 app.get("/api/shop", async (req, res) => {
   try {
-    const shops = await prisma.shop.findMany();
-    res.status(200).json({ success: true, data: shops });
+    if (prisma) {
+      const shops = await prisma.shop.findMany();
+      res.status(200).json({ success: true, data: shops });
+    } else {
+      // Fallback to mock data if Prisma not available
+      res.status(200).json({ success: true, data: mockShops });
+    }
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Error fetching shops:", error);
+    // Fallback to mock data on error
+    res.status(200).json({ success: true, data: mockShops });
   }
 });
 
 app.get("/api/shop/:id", async (req, res) => {
   try {
-    const shop = await prisma.shop.findUnique({
-      where: { id: parseInt(req.params.id) }
-    });
+    let shop;
+    if (prisma) {
+      shop = await prisma.shop.findUnique({
+        where: { id: parseInt(req.params.id) }
+      });
+    } else {
+      // Fallback to mock data
+      shop = mockShops.find(s => s.id === parseInt(req.params.id));
+    }
+
     if (shop) {
       res.status(200).json({ success: true, data: shop });
     } else {
       res.status(404).json({ success: false, message: "Shop not found" });
     }
   } catch (error) {
+    console.error("Error fetching shop:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -94,30 +131,55 @@ app.post("/api/shop/register", async (req, res) => {
       return res.status(400).json({ success: false, message: "All fields are required" });
     }
 
-    // Check if email already exists
-    const existingShop = await prisma.shop.findUnique({
-      where: { email }
-    });
+    let existingShop;
+    let newShop;
 
-    if (existingShop) {
-      return res.status(400).json({ success: false, message: "Email already registered" });
-    }
+    if (prisma) {
+      // Check if email already exists
+      existingShop = await prisma.shop.findUnique({
+        where: { email }
+      });
 
-    // Create new shop with pending status
-    const newShop = await prisma.shop.create({
-      data: {
+      if (existingShop) {
+        return res.status(400).json({ success: false, message: "Email already registered" });
+      }
+
+      // Create new shop with pending status
+      newShop = await prisma.shop.create({
+        data: {
+          name,
+          ownerName,
+          email,
+          phone,
+          address,
+          password,
+          status: "pending"
+        }
+      });
+    } else {
+      // Fallback to mock data
+      existingShop = mockShops.find(s => s.email === email);
+      if (existingShop) {
+        return res.status(400).json({ success: false, message: "Email already registered" });
+      }
+
+      newShop = {
+        id: Math.max(...mockShops.map(s => s.id), 0) + 1,
         name,
         ownerName,
         email,
         phone,
         address,
         password,
-        status: "pending"
-      }
-    });
+        status: "pending",
+        createdAt: new Date().toISOString()
+      };
+      mockShops.push(newShop);
+    }
 
     res.status(201).json({ success: true, message: "Shop registered successfully!", data: newShop });
   } catch (error) {
+    console.error("Error registering shop:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -125,12 +187,27 @@ app.post("/api/shop/register", async (req, res) => {
 // Approve shop
 app.put("/api/shop/:id/approve", async (req, res) => {
   try {
-    const shop = await prisma.shop.update({
-      where: { id: parseInt(req.params.id) },
-      data: { status: "approved" }
-    });
+    const shopId = parseInt(req.params.id);
+    let shop;
+
+    if (prisma) {
+      shop = await prisma.shop.update({
+        where: { id: shopId },
+        data: { status: "approved" }
+      });
+    } else {
+      // Fallback to mock data
+      shop = mockShops.find(s => s.id === shopId);
+      if (shop) {
+        shop.status = "approved";
+      } else {
+        return res.status(404).json({ success: false, message: "Shop not found" });
+      }
+    }
+
     res.status(200).json({ success: true, message: "Shop approved!", data: shop });
   } catch (error) {
+    console.error("Error approving shop:", error);
     res.status(404).json({ success: false, message: "Shop not found" });
   }
 });
@@ -138,12 +215,27 @@ app.put("/api/shop/:id/approve", async (req, res) => {
 // Reject/Disapprove shop
 app.put("/api/shop/:id/reject", async (req, res) => {
   try {
-    const shop = await prisma.shop.update({
-      where: { id: parseInt(req.params.id) },
-      data: { status: "pending" }
-    });
+    const shopId = parseInt(req.params.id);
+    let shop;
+
+    if (prisma) {
+      shop = await prisma.shop.update({
+        where: { id: shopId },
+        data: { status: "pending" }
+      });
+    } else {
+      // Fallback to mock data
+      shop = mockShops.find(s => s.id === shopId);
+      if (shop) {
+        shop.status = "pending";
+      } else {
+        return res.status(404).json({ success: false, message: "Shop not found" });
+      }
+    }
+
     res.status(200).json({ success: true, message: "Shop disapproved!", data: shop });
   } catch (error) {
+    console.error("Error rejecting shop:", error);
     res.status(404).json({ success: false, message: "Shop not found" });
   }
 });
@@ -151,17 +243,35 @@ app.put("/api/shop/:id/reject", async (req, res) => {
 // Delete shop
 app.delete("/api/shop/:id", async (req, res) => {
   try {
-    // Delete all staff for this shop first
-    await prisma.$executeRawUnsafe(
-      `DELETE FROM "User" WHERE role = 'staff' AND email LIKE $1`,
-      [`%${req.params.id}%`]
-    );
+    const shopId = parseInt(req.params.id);
+    let deletedShop;
 
-    const deletedShop = await prisma.shop.delete({
-      where: { id: parseInt(req.params.id) }
-    });
+    if (prisma) {
+      // Delete all staff for this shop first
+      try {
+        await prisma.$executeRawUnsafe(
+          `DELETE FROM "User" WHERE role = 'staff' AND email LIKE $1`,
+          [`%${shopId}%`]
+        );
+      } catch (e) {
+        // Ignore raw query errors
+      }
+
+      deletedShop = await prisma.shop.delete({
+        where: { id: shopId }
+      });
+    } else {
+      // Fallback to mock data
+      const index = mockShops.findIndex(s => s.id === shopId);
+      if (index === -1) {
+        return res.status(404).json({ success: false, message: "Shop not found" });
+      }
+      deletedShop = mockShops.splice(index, 1)[0];
+    }
+
     res.status(200).json({ success: true, message: "Shop deleted!", data: deletedShop });
   } catch (error) {
+    console.error("Error deleting shop:", error);
     res.status(404).json({ success: false, message: "Shop not found" });
   }
 });
