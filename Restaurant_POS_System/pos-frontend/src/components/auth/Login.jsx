@@ -65,6 +65,8 @@ const Login = () => {
       const shop = checkShopLogin(formData.email, formData.password);
       if (shop) {
         localStorage.setItem("shopSession", JSON.stringify({ id: shop.id, name: shop.shopName, email: shop.email }));
+        // Also set user in Redux for authentication
+        dispatch(setUser({ _id: shop.id, name: shop.shopName, email: shop.email, phone: shop.phone, role: "Admin" }));
         enqueueSnackbar(`Welcome ${shop.shopName}! Redirecting to dashboard...`, { variant: "success" });
         setTimeout(() => navigate("/"), 800);
         return;
