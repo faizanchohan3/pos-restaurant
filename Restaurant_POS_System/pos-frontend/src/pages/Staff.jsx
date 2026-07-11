@@ -7,10 +7,10 @@ import { useSelector } from "react-redux";
 import { Navigate } from "react-router-dom";
 
 const Staff = () => {
-  const { user } = useSelector(state => state.user);
+  const { role } = useSelector(state => state.user);
 
   // Check if user is admin
-  if (user?.role !== "Admin") {
+  if (role !== "Admin") {
     return <Navigate to="/" />;
   }
   const [staff, setStaff] = useState([
@@ -27,6 +27,7 @@ const Staff = () => {
     phone: "",
     email: "",
     joinDate: "",
+    password: "",
   });
 
   useEffect(() => {
@@ -37,6 +38,11 @@ const Staff = () => {
     e.preventDefault();
     if (!formData.name || !formData.position || !formData.salary || !formData.phone) {
       enqueueSnackbar("Please fill all required fields", { variant: "warning" });
+      return;
+    }
+
+    if (!editingId && !formData.password) {
+      enqueueSnackbar("Password required for new staff member", { variant: "warning" });
       return;
     }
 
@@ -51,10 +57,23 @@ const Staff = () => {
         salary: parseInt(formData.salary),
       };
       setStaff([...staff, newStaff]);
-      enqueueSnackbar("Staff member added!", { variant: "success" });
+
+      // Save to localStorage for staff login
+      const staffList = JSON.parse(localStorage.getItem("staffMembers") || "[]");
+      staffList.push({
+        id: newStaff.id,
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        position: formData.position,
+        role: formData.position, // Position is the role
+      });
+      localStorage.setItem("staffMembers", JSON.stringify(staffList));
+
+      enqueueSnackbar(`✅ Staff member added! They can login with email: ${formData.email}`, { variant: "success" });
     }
 
-    setFormData({ name: "", position: "", salary: "", phone: "", email: "", joinDate: "" });
+    setFormData({ name: "", position: "", salary: "", phone: "", email: "", joinDate: "", password: "" });
     setShowAddModal(false);
   };
 
@@ -226,6 +245,16 @@ const Staff = () => {
                   type="date"
                   value={formData.joinDate}
                   onChange={(e) => setFormData({...formData, joinDate: e.target.value})}
+                  className="w-full bg-[#1f1f1f] text-white px-4 py-2 rounded-lg focus:outline-none border border-[#383838]"
+                />
+              </div>
+              <div className="mb-4">
+                <label className="text-[#ababab] text-sm mb-2 block">Password {!editingId && "*"}</label>
+                <input
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({...formData, password: e.target.value})}
+                  placeholder="Enter password for staff login"
                   className="w-full bg-[#1f1f1f] text-white px-4 py-2 rounded-lg focus:outline-none border border-[#383838]"
                 />
               </div>

@@ -45,6 +45,11 @@ const Login = () => {
       return approvedShops.find(s => s.email === email && s.password === password && s.status === "approved");
     };
 
+    const checkStaffLogin = (email, password) => {
+      const staffMembers = JSON.parse(localStorage.getItem("staffMembers") || "[]");
+      return staffMembers.find(s => s.email === email && s.password === password);
+    };
+
     const handleSubmit = (e) => {
       e.preventDefault();
       if (!formData.email || !formData.password) {
@@ -68,6 +73,17 @@ const Login = () => {
         // Also set user in Redux for authentication
         dispatch(setUser({ _id: shop.id, name: shop.shopName, email: shop.email, phone: shop.phone, role: "Admin" }));
         enqueueSnackbar(`Welcome ${shop.shopName}! Redirecting to dashboard...`, { variant: "success" });
+        setTimeout(() => navigate("/"), 800);
+        return;
+      }
+
+      // Check if it's a staff member
+      const staff = checkStaffLogin(formData.email, formData.password);
+      if (staff) {
+        localStorage.setItem("staffSession", JSON.stringify({ id: staff.id, name: staff.name, email: staff.email, role: staff.role }));
+        // Also set user in Redux for authentication
+        dispatch(setUser({ _id: staff.id, name: staff.name, email: staff.email, phone: "", role: staff.role }));
+        enqueueSnackbar(`Welcome ${staff.name}! Redirecting to dashboard...`, { variant: "success" });
         setTimeout(() => navigate("/"), 800);
         return;
       }
