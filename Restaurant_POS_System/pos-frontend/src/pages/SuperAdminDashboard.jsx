@@ -59,8 +59,10 @@ const SuperAdminDashboard = () => {
       enqueueSnackbar(`✅ ${shop.name} approved successfully!`, {
         variant: "success",
       });
+      loadShops(); // Reload shops from database
     } catch (error) {
-      enqueueSnackbar("Failed to approve shop", { variant: "error" });
+      console.error("Approve shop error:", error);
+      enqueueSnackbar(error.response?.data?.message || "Failed to approve shop", { variant: "error" });
     }
   };
 
@@ -73,8 +75,10 @@ const SuperAdminDashboard = () => {
         JSON.stringify(pendingShops.filter((s) => s.id !== shop.id))
       );
       enqueueSnackbar(`❌ ${shop.name} rejected!`, { variant: "info" });
+      loadShops(); // Reload shops from database
     } catch (error) {
-      enqueueSnackbar("Failed to reject shop", { variant: "error" });
+      console.error("Reject shop error:", error);
+      enqueueSnackbar(error.response?.data?.message || "Failed to reject shop", { variant: "error" });
     }
   };
 
@@ -112,8 +116,10 @@ const SuperAdminDashboard = () => {
       localStorage.setItem("pendingShops", JSON.stringify(pendingShops.filter((s) => s.id !== shop.id)));
 
       enqueueSnackbar(`🗑️ ${shop.name} deleted permanently!`, { variant: "success" });
+      loadShops(); // Reload shops from database
     } catch (error) {
-      enqueueSnackbar("Failed to delete shop", { variant: "error" });
+      console.error("Delete shop error:", error);
+      enqueueSnackbar(error.response?.data?.message || "Failed to delete shop", { variant: "error" });
     }
   };
 
