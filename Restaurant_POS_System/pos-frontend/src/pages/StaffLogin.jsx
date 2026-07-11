@@ -22,7 +22,7 @@ const StaffLogin = () => {
 
   const fetchShops = async () => {
     try {
-      const response = await axios.get("${API_BASE_URL}/api/shop");
+      const response = await axios.get(`${API_BASE_URL}/api/shop`);
       if (response.data.success) {
         setShops(response.data.data);
         if (response.data.data.length > 0) {
@@ -45,7 +45,7 @@ const StaffLogin = () => {
 
     setLoading(true);
     try {
-      const response = await axios.post("${API_BASE_URL}/api/staff/login", {
+      const response = await axios.post(`${API_BASE_URL}/api/staff/login`, {
         email,
         password,
         shopId: parseInt(selectedShop),
