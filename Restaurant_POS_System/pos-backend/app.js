@@ -1,7 +1,9 @@
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
+const { PrismaClient } = require("@prisma/client");
 const app = express();
+const prisma = new PrismaClient();
 
 const config = require("./config/config");
 const globalErrorHandler = require("./middlewares/globalErrorHandler");
@@ -59,49 +61,72 @@ const mockOrders = [];
 const mockPayments = [];
 
 // ==================== SHOP ROUTES ====================
-app.get("/api/shop", (req, res) => {
-  res.status(200).json({ success: true, data: mockShops });
+app.get("/api/shop", async (req, res) => {
+  try {
+    const shops = await prisma.shop.findMany();
+    res.status(200).json({ success: true, data: shops });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
-app.get("/api/shop/:id", (req, res) => {
-  const shop = mockShops.find(s => s.id === parseInt(req.params.id));
-  if (shop) {
-    res.status(200).json({ success: true, data: shop });
-  } else {
-    res.status(404).json({ success: false, message: "Shop not found" });
+app.get("/api/shop/:id", async (req, res) => {
+  try {
+    const shop = await prisma.shop.findUnique({
+      where: { id: parseInt(req.params.id) }
+    });
+    if (shop) {
+      res.status(200).json({ success: true, data: shop });
+    } else {
+      res.status(404).json({ success: false, message: "Shop not found" });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
 // Approve shop
-app.put("/api/shop/:id/approve", (req, res) => {
-  const shop = mockShops.find(s => s.id === parseInt(req.params.id));
-  if (!shop) {
-    return res.status(404).json({ success: false, message: "Shop not found" });
+app.put("/api/shop/:id/approve", async (req, res) => {
+  try {
+    const shop = await prisma.shop.update({
+      where: { id: parseInt(req.params.id) },
+      data: { status: "approved" }
+    });
+    res.status(200).json({ success: true, message: "Shop approved!", data: shop });
+  } catch (error) {
+    res.status(404).json({ success: false, message: "Shop not found" });
   }
-  shop.status = "approved";
-  res.status(200).json({ success: true, message: "Shop approved!", data: shop });
 });
 
 // Reject/Disapprove shop
-app.put("/api/shop/:id/reject", (req, res) => {
-  const shop = mockShops.find(s => s.id === parseInt(req.params.id));
-  if (!shop) {
-    return res.status(404).json({ success: false, message: "Shop not found" });
+app.put("/api/shop/:id/reject", async (req, res) => {
+  try {
+    const shop = await prisma.shop.update({
+      where: { id: parseInt(req.params.id) },
+      data: { status: "pending" }
+    });
+    res.status(200).json({ success: true, message: "Shop disapproved!", data: shop });
+  } catch (error) {
+    res.status(404).json({ success: false, message: "Shop not found" });
   }
-  shop.status = "pending";
-  res.status(200).json({ success: true, message: "Shop disapproved!", data: shop });
 });
 
 // Delete shop
-app.delete("/api/shop/:id", (req, res) => {
-  const index = mockShops.findIndex(s => s.id === parseInt(req.params.id));
-  if (index === -1) {
-    return res.status(404).json({ success: false, message: "Shop not found" });
+app.delete("/api/shop/:id", async (req, res) => {
+  try {
+    // Delete all staff for this shop first
+    await prisma.$executeRawUnsafe(
+      `DELETE FROM "User" WHERE role = 'staff' AND email LIKE $1`,
+      [`%${req.params.id}%`]
+    );
+
+    const deletedShop = await prisma.shop.delete({
+      where: { id: parseInt(req.params.id) }
+    });
+    res.status(200).json({ success: true, message: "Shop deleted!", data: deletedShop });
+  } catch (error) {
+    res.status(404).json({ success: false, message: "Shop not found" });
   }
-  const deletedShop = mockShops.splice(index, 1);
-  // Also delete all staff for this shop
-  mockStaff = mockStaff.filter(s => s.shopId !== parseInt(req.params.id));
-  res.status(200).json({ success: true, message: "Shop deleted!", data: deletedShop[0] });
 });
 
 // ==================== STAFF ROUTES ====================

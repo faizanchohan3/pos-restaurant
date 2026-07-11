@@ -45,12 +45,32 @@ const SuperAdminDashboard = () => {
 
   useEffect(() => {
     document.title = "SuperAdmin - Shop Management";
-    // Load from localStorage
-    const pending = JSON.parse(localStorage.getItem("pendingShops") || "[]");
-    const approved = JSON.parse(localStorage.getItem("approvedShops") || "[]");
-    if (pending.length > 0) setPendingShops(pending);
-    if (approved.length > 0) setApprovedShops(approved);
+    loadShops();
   }, []);
+
+  const loadShops = async () => {
+    try {
+      // Try to load from API first
+      const response = await fetch("http://localhost:8000/api/shop");
+      if (response.ok) {
+        const data = await response.json();
+        const shops = data.data || [];
+
+        const pending = shops.filter(s => s.status === "pending");
+        const approved = shops.filter(s => s.status === "approved");
+
+        setPendingShops(pending);
+        setApprovedShops(approved);
+      }
+    } catch (error) {
+      console.log("Loading from localStorage fallback...");
+      // Fallback to localStorage
+      const pending = JSON.parse(localStorage.getItem("pendingShops") || "[]");
+      const approved = JSON.parse(localStorage.getItem("approvedShops") || "[]");
+      if (pending.length > 0) setPendingShops(pending);
+      if (approved.length > 0) setApprovedShops(approved);
+    }
+  };
 
   const handleApproveShop = async (shop) => {
     try {
