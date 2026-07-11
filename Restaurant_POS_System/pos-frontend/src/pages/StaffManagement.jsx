@@ -4,6 +4,7 @@ import { Navigate } from "react-router-dom";
 import { enqueueSnackbar } from "notistack";
 import { FiEdit2, FiTrash2, FiPlus } from "react-icons/fi";
 import axios from "axios";
+import API_BASE_URL from "../config/api";
 
 const StaffManagement = () => {
   const { user, role } = useSelector((state) => state.user);
@@ -38,7 +39,7 @@ const StaffManagement = () => {
     setLoading(true);
     try {
       const response = await axios.get(
-        `http://localhost:8000/api/staff/shop/${shopId}`
+        `${API_BASE_URL}/api/staff/shop/${shopId}`
       );
       if (response.data.success) {
         setStaff(response.data.data);
@@ -115,7 +116,7 @@ const StaffManagement = () => {
       if (editingStaff) {
         // Update staff
         const response = await axios.put(
-          `http://localhost:8000/api/staff/${editingStaff.id}`,
+          `${API_BASE_URL}/api/staff/${editingStaff.id}`,
           {
             name: formData.name,
             email: formData.email,
@@ -133,7 +134,7 @@ const StaffManagement = () => {
       } else {
         // Add new staff
         const response = await axios.post(
-          "http://localhost:8000/api/staff",
+          "${API_BASE_URL}/api/staff",
           {
             name: formData.name,
             email: formData.email,
@@ -168,7 +169,7 @@ const StaffManagement = () => {
     setLoading(true);
     try {
       const response = await axios.delete(
-        `http://localhost:8000/api/staff/${staffId}`
+        `${API_BASE_URL}/api/staff/${staffId}`
       );
       if (response.data.success) {
         enqueueSnackbar("Staff deleted successfully!", { variant: "success" });

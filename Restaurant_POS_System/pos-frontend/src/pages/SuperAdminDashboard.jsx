@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { enqueueSnackbar } from "notistack";
 import { FiCheckCircle, FiXCircle, FiEye, FiLogOut, FiTrash2 } from "react-icons/fi";
 import { approveShop, rejectShop, deleteShop } from "../https/index";
+import API_BASE_URL from "../config/api";
 
 const SuperAdminDashboard = () => {
   const navigate = useNavigate();
@@ -19,7 +20,7 @@ const SuperAdminDashboard = () => {
   const loadShops = async () => {
     try {
       // Load from database API
-      const response = await fetch("http://localhost:8000/api/shop");
+      const response = await fetch(`${API_BASE_URL}/api/shop`);
       if (response.ok) {
         const data = await response.json();
         const shops = data.data || [];

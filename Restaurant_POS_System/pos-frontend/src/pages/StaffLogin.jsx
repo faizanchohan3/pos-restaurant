@@ -4,6 +4,7 @@ import { useDispatch } from "react-redux";
 import { enqueueSnackbar } from "notistack";
 import { setUser } from "../redux/slices/userSlice";
 import axios from "axios";
+import API_BASE_URL from "../config/api";
 
 const StaffLogin = () => {
   const navigate = useNavigate();
@@ -21,7 +22,7 @@ const StaffLogin = () => {
 
   const fetchShops = async () => {
     try {
-      const response = await axios.get("http://localhost:8000/api/shop");
+      const response = await axios.get("${API_BASE_URL}/api/shop");
       if (response.data.success) {
         setShops(response.data.data);
         if (response.data.data.length > 0) {
@@ -44,7 +45,7 @@ const StaffLogin = () => {
 
     setLoading(true);
     try {
-      const response = await axios.post("http://localhost:8000/api/staff/login", {
+      const response = await axios.post("${API_BASE_URL}/api/staff/login", {
         email,
         password,
         shopId: parseInt(selectedShop),

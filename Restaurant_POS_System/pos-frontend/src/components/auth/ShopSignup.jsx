@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { enqueueSnackbar } from "notistack";
+import API_BASE_URL from "../../config/api";
 
 const ShopSignup = ({ setIsSignup }) => {
   const [formData, setFormData] = useState({
@@ -39,7 +40,7 @@ const ShopSignup = ({ setIsSignup }) => {
     setLoading(true);
     try {
       // Call API to register shop in database
-      const response = await fetch("http://localhost:8000/api/shop/register", {
+      const response = await fetch(`${API_BASE_URL}/api/shop/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
