@@ -17,7 +17,7 @@ const ShopSignup = ({ setIsSignup }) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (
@@ -38,31 +38,44 @@ const ShopSignup = ({ setIsSignup }) => {
 
     setLoading(true);
     try {
-      const newShop = {
-        id: Date.now(),
-        shopName: formData.shopName,
-        ownerName: formData.ownerName,
-        email: formData.email,
-        phone: formData.phone,
-        address: formData.address,
-        password: formData.password,
-        status: "pending",
-        createdAt: new Date().toISOString(),
-      };
+      // Call API to register shop in database
+      const response = await fetch("http://localhost:8000/api/shop/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: formData.shopName,
+          ownerName: formData.ownerName,
+          email: formData.email,
+          phone: formData.phone,
+          address: formData.address,
+          password: formData.password,
+        }),
+      });
 
-      const pendingShops = JSON.parse(
-        localStorage.getItem("pendingShops") || "[]"
-      );
+      const data = await response.json();
 
-      // Check if email already exists
-      const existingShop = pendingShops.find(s => s.email === formData.email);
-      if (existingShop) {
-        enqueueSnackbar("This email is already registered!", { variant: "error" });
+      if (!response.ok) {
+        enqueueSnackbar(data.message || "Failed to register shop", { variant: "error" });
         setLoading(false);
         return;
       }
 
-      pendingShops.push(newShop);
+      // Also save to localStorage as backup
+      const pendingShops = JSON.parse(
+        localStorage.getItem("pendingShops") || "[]"
+      );
+      pendingShops.push({
+        id: data.data.id,
+        name: formData.shopName,
+        ownerName: formData.ownerName,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+        status: "pending",
+        createdAt: data.data.createdAt,
+      });
       localStorage.setItem("pendingShops", JSON.stringify(pendingShops));
 
       enqueueSnackbar(

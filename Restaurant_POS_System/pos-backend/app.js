@@ -85,6 +85,43 @@ app.get("/api/shop/:id", async (req, res) => {
   }
 });
 
+// Register new shop
+app.post("/api/shop/register", async (req, res) => {
+  try {
+    const { name, ownerName, email, phone, address, password } = req.body;
+
+    if (!name || !ownerName || !email || !password) {
+      return res.status(400).json({ success: false, message: "All fields are required" });
+    }
+
+    // Check if email already exists
+    const existingShop = await prisma.shop.findUnique({
+      where: { email }
+    });
+
+    if (existingShop) {
+      return res.status(400).json({ success: false, message: "Email already registered" });
+    }
+
+    // Create new shop with pending status
+    const newShop = await prisma.shop.create({
+      data: {
+        name,
+        ownerName,
+        email,
+        phone,
+        address,
+        password,
+        status: "pending"
+      }
+    });
+
+    res.status(201).json({ success: true, message: "Shop registered successfully!", data: newShop });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // Approve shop
 app.put("/api/shop/:id/approve", async (req, res) => {
   try {
