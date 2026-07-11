@@ -6,40 +6,8 @@ import { approveShop, rejectShop, deleteShop } from "../https/index";
 
 const SuperAdminDashboard = () => {
   const navigate = useNavigate();
-  const [pendingShops, setPendingShops] = useState([
-    {
-      id: 1,
-      name: "Test Shop 1",
-      ownerName: "John Doe",
-      email: "john@shop.com",
-      phone: "9876543210",
-      address: "123 Main St",
-      status: "pending",
-      createdAt: "2024-07-09",
-    },
-  ]);
-  const [approvedShops, setApprovedShops] = useState([
-    {
-      id: 2,
-      name: "Main Branch",
-      ownerName: "Raj Kumar",
-      email: "main@restaurant.com",
-      phone: "9876543211",
-      address: "Downtown",
-      status: "approved",
-      createdAt: "2024-06-01",
-    },
-    {
-      id: 3,
-      name: "Mall Branch",
-      ownerName: "Priya Singh",
-      email: "mall@restaurant.com",
-      phone: "9876543212",
-      address: "Shopping Mall",
-      status: "approved",
-      createdAt: "2024-06-15",
-    },
-  ]);
+  const [pendingShops, setPendingShops] = useState([]);
+  const [approvedShops, setApprovedShops] = useState([]);
   const [selectedShop, setSelectedShop] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 
@@ -50,7 +18,7 @@ const SuperAdminDashboard = () => {
 
   const loadShops = async () => {
     try {
-      // Try to load from API first
+      // Load from database API
       const response = await fetch("http://localhost:8000/api/shop");
       if (response.ok) {
         const data = await response.json();
@@ -61,14 +29,14 @@ const SuperAdminDashboard = () => {
 
         setPendingShops(pending);
         setApprovedShops(approved);
+      } else {
+        console.log("No shops found in database");
       }
     } catch (error) {
-      console.log("Loading from localStorage fallback...");
-      // Fallback to localStorage
-      const pending = JSON.parse(localStorage.getItem("pendingShops") || "[]");
-      const approved = JSON.parse(localStorage.getItem("approvedShops") || "[]");
-      if (pending.length > 0) setPendingShops(pending);
-      if (approved.length > 0) setApprovedShops(approved);
+      console.error("Failed to load shops from database:", error);
+      // Show empty state if API fails
+      setPendingShops([]);
+      setApprovedShops([]);
     }
   };
 
