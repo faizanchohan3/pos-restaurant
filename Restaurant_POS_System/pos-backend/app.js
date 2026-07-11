@@ -35,7 +35,9 @@ const PORT = config.port;
 // Middlewares
 app.use(cors({
     credentials: true,
-    origin: ['http://localhost:5173', 'https://pos-frontend-omega-ten.vercel.app', 'https://pos-frontend-7tszy1so6-softtech1.vercel.app']
+    origin: ['http://localhost:5173', 'https://pos-frontend-omega-ten.vercel.app', 'https://pos-frontend-7tszy1so6-softtech1.vercel.app', 'https://pos-frontend-5l6m8asbn-softtech1.vercel.app'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
 }))
 app.use(express.json());
 app.use(cookieParser())
