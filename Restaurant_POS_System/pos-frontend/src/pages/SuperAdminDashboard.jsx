@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { enqueueSnackbar } from "notistack";
-import { FiCheckCircle, FiXCircle, FiEye, FiLogOut } from "react-icons/fi";
+import { FiCheckCircle, FiXCircle, FiEye, FiLogOut, FiTrash2 } from "react-icons/fi";
+import { approveShop, rejectShop, deleteShop } from "../https/index";
 
 const SuperAdminDashboard = () => {
   const navigate = useNavigate();
@@ -51,31 +52,80 @@ const SuperAdminDashboard = () => {
     if (approved.length > 0) setApprovedShops(approved);
   }, []);
 
-  const handleApproveShop = (shop) => {
-    setPendingShops(pendingShops.filter((s) => s.id !== shop.id));
-    const approvedShop = { ...shop, status: "approved" };
-    setApprovedShops([...approvedShops, approvedShop]);
+  const handleApproveShop = async (shop) => {
+    try {
+      await approveShop(shop.id);
+      setPendingShops(pendingShops.filter((s) => s.id !== shop.id));
+      const approvedShop = { ...shop, status: "approved" };
+      setApprovedShops([...approvedShops, approvedShop]);
 
-    // Update localStorage
-    const allApproved = [...approvedShops, approvedShop];
-    localStorage.setItem("approvedShops", JSON.stringify(allApproved));
-    localStorage.setItem(
-      "pendingShops",
-      JSON.stringify(pendingShops.filter((s) => s.id !== shop.id))
-    );
+      // Update localStorage
+      const allApproved = [...approvedShops, approvedShop];
+      localStorage.setItem("approvedShops", JSON.stringify(allApproved));
+      localStorage.setItem(
+        "pendingShops",
+        JSON.stringify(pendingShops.filter((s) => s.id !== shop.id))
+      );
 
-    enqueueSnackbar(`${shop.name} approved successfully!`, {
-      variant: "success",
-    });
+      enqueueSnackbar(`✅ ${shop.name} approved successfully!`, {
+        variant: "success",
+      });
+    } catch (error) {
+      enqueueSnackbar("Failed to approve shop", { variant: "error" });
+    }
   };
 
-  const handleRejectShop = (shop) => {
-    setPendingShops(pendingShops.filter((s) => s.id !== shop.id));
-    localStorage.setItem(
-      "pendingShops",
-      JSON.stringify(pendingShops.filter((s) => s.id !== shop.id))
-    );
-    enqueueSnackbar(`${shop.name} rejected!`, { variant: "info" });
+  const handleRejectShop = async (shop) => {
+    try {
+      await rejectShop(shop.id);
+      setPendingShops(pendingShops.filter((s) => s.id !== shop.id));
+      localStorage.setItem(
+        "pendingShops",
+        JSON.stringify(pendingShops.filter((s) => s.id !== shop.id))
+      );
+      enqueueSnackbar(`❌ ${shop.name} rejected!`, { variant: "info" });
+    } catch (error) {
+      enqueueSnackbar("Failed to reject shop", { variant: "error" });
+    }
+  };
+
+  const handleDisapproveShop = async (shop) => {
+    try {
+      await rejectShop(shop.id);
+      setApprovedShops(approvedShops.filter((s) => s.id !== shop.id));
+      const disapprovedShop = { ...shop, status: "pending" };
+      setPendingShops([...pendingShops, disapprovedShop]);
+
+      // Update localStorage
+      localStorage.setItem("approvedShops", JSON.stringify(approvedShops.filter((s) => s.id !== shop.id)));
+      localStorage.setItem("pendingShops", JSON.stringify([...pendingShops, disapprovedShop]));
+
+      enqueueSnackbar(`⏮️ ${shop.name} disapproved!`, { variant: "warning" });
+    } catch (error) {
+      enqueueSnackbar("Failed to disapprove shop", { variant: "error" });
+    }
+  };
+
+  const handleDeleteShop = async (shop) => {
+    if (!window.confirm(`Are you sure you want to delete ${shop.name}? This action cannot be undone.`)) {
+      return;
+    }
+    try {
+      await deleteShop(shop.id);
+      if (shop.status === "pending") {
+        setPendingShops(pendingShops.filter((s) => s.id !== shop.id));
+      } else {
+        setApprovedShops(approvedShops.filter((s) => s.id !== shop.id));
+      }
+
+      // Update localStorage
+      localStorage.setItem("approvedShops", JSON.stringify(approvedShops.filter((s) => s.id !== shop.id)));
+      localStorage.setItem("pendingShops", JSON.stringify(pendingShops.filter((s) => s.id !== shop.id)));
+
+      enqueueSnackbar(`🗑️ ${shop.name} deleted permanently!`, { variant: "success" });
+    } catch (error) {
+      enqueueSnackbar("Failed to delete shop", { variant: "error" });
+    }
   };
 
   const handleDisableShop = (shop) => {
@@ -207,6 +257,13 @@ const SuperAdminDashboard = () => {
                       <FiXCircle size={18} /> Reject
                     </button>
                     <button
+                      onClick={() => handleDeleteShop(shop)}
+                      className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition"
+                      title="Delete permanently"
+                    >
+                      <FiTrash2 size={16} /> Delete
+                    </button>
+                    <button
                       onClick={() => {
                         setSelectedShop(shop);
                         setShowDetailsModal(true);
@@ -265,8 +322,31 @@ const SuperAdminDashboard = () => {
 
                 <div className="flex gap-3">
                   <button
+                    onClick={() => handleDisapproveShop(shop)}
+                    className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded-lg transition"
+                    title="Move back to pending"
+                  >
+                    ⏮️ Disapprove
+                  </button>
+                  <button
+                    onClick={() => handleDeleteShop(shop)}
+                    className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition"
+                    title="Delete permanently"
+                  >
+                    <FiTrash2 size={16} /> Delete
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedShop(shop);
+                      setShowDetailsModal(true);
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition"
+                  >
+                    <FiEye size={16} /> Details
+                  </button>
+                  <button
                     onClick={() => handleDisableShop(shop)}
-                    className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition"
+                    className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition"
                   >
                     Disable Shop
                   </button>

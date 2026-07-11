@@ -72,6 +72,38 @@ app.get("/api/shop/:id", (req, res) => {
   }
 });
 
+// Approve shop
+app.put("/api/shop/:id/approve", (req, res) => {
+  const shop = mockShops.find(s => s.id === parseInt(req.params.id));
+  if (!shop) {
+    return res.status(404).json({ success: false, message: "Shop not found" });
+  }
+  shop.status = "approved";
+  res.status(200).json({ success: true, message: "Shop approved!", data: shop });
+});
+
+// Reject/Disapprove shop
+app.put("/api/shop/:id/reject", (req, res) => {
+  const shop = mockShops.find(s => s.id === parseInt(req.params.id));
+  if (!shop) {
+    return res.status(404).json({ success: false, message: "Shop not found" });
+  }
+  shop.status = "pending";
+  res.status(200).json({ success: true, message: "Shop disapproved!", data: shop });
+});
+
+// Delete shop
+app.delete("/api/shop/:id", (req, res) => {
+  const index = mockShops.findIndex(s => s.id === parseInt(req.params.id));
+  if (index === -1) {
+    return res.status(404).json({ success: false, message: "Shop not found" });
+  }
+  const deletedShop = mockShops.splice(index, 1);
+  // Also delete all staff for this shop
+  mockStaff = mockStaff.filter(s => s.shopId !== parseInt(req.params.id));
+  res.status(200).json({ success: true, message: "Shop deleted!", data: deletedShop[0] });
+});
+
 // ==================== STAFF ROUTES ====================
 // Get all staff for a shop
 app.get("/api/staff/shop/:shopId", (req, res) => {
