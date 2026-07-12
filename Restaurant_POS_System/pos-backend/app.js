@@ -12,7 +12,7 @@ if (process.env.DATABASE_URL) {
   try {
     db = new Pool({
       connectionString: process.env.DATABASE_URL,
-      max: 1, // Minimal connections for serverless
+      max: 1,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 5000,
     });
@@ -20,13 +20,14 @@ if (process.env.DATABASE_URL) {
       console.error('DB connection error:', err);
       db = null;
     });
+    console.log("✅ Database connection pool initialized");
   } catch (error) {
     dbError = error.message;
-    console.warn("Database initialization warning:", dbError);
+    console.error("❌ Database initialization error:", dbError);
     db = null;
   }
 } else {
-  console.warn("DATABASE_URL not set - using mock data only");
+  console.error("❌ DATABASE_URL not set - Database connection required!");
   db = null;
 }
 
@@ -47,99 +48,130 @@ app.use(cookieParser())
 
 // Root Endpoint
 app.get("/", (req,res) => {
-    res.json({message : "Hello from POS Server!"});
+    res.json({message : "POS Backend - Connected to Neon Database"});
 })
 
-// Debug endpoint
-app.get("/api/debug", async (req,res) => {
-    let dbConnected = false;
-    if (db) {
-      try {
-        await db.query('SELECT 1');
-        dbConnected = true;
-      } catch (e) {
-        dbConnected = false;
-      }
+// Health Check
+app.get("/api/health", async (req, res) => {
+  if (!db) {
+    return res.status(503).json({ success: false, message: "Database not connected" });
+  }
+  try {
+    await db.query('SELECT 1');
+    res.json({ success: true, message: "Database connected", database: "Neon PostgreSQL" });
+  } catch (e) {
+    res.status(503).json({ success: false, message: "Database error: " + e.message });
+  }
+});
+
+// ==================== SUPERADMIN ROUTES ====================
+
+// SuperAdmin Login
+app.post("/api/superadmin/login", async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({ success: false, message: "Database not connected" });
     }
 
-    res.json({
-      dbConnected: dbConnected,
-      dbError: dbError,
-      databaseUrl: process.env.DATABASE_URL ? "SET" : "NOT SET",
-      mockShopsCount: mockShops.length
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: "Email and password required" });
+    }
+
+    // Query Neon database for SuperAdmin
+    const result = await db.query(
+      'SELECT id, name, email FROM "SuperAdmin" WHERE email = $1 AND password = $2',
+      [email, password]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(401).json({ success: false, message: "Invalid credentials" });
+    }
+
+    const superAdmin = result.rows[0];
+    res.cookie('accessToken', 'superadmin-' + superAdmin.id, { httpOnly: true });
+    res.status(200).json({
+      success: true,
+      message: "SuperAdmin login successful",
+      data: {
+        id: superAdmin.id,
+        name: superAdmin.name,
+        email: superAdmin.email,
+        role: "SuperAdmin"
+      }
     });
-})
+  } catch (error) {
+    console.error("SuperAdmin login error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 
-// ==================== MOCK DATA STORE ====================
-const mockShops = [
-  {
-    id: 1,
-    name: "Main Branch",
-    ownerName: "Raj Kumar",
-    email: "main@restaurant.com",
-    phone: "9876543211",
-    address: "Downtown",
-    password: "admin123",
-    status: "approved",
-    createdAt: new Date("2024-06-01"),
-  },
-];
+// SuperAdmin Register (Only if none exist)
+app.post("/api/superadmin/register", async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({ success: false, message: "Database not connected" });
+    }
 
-const mockStaff = [
-  {
-    id: 1,
-    name: "John Doe",
-    email: "john@restaurant.com",
-    phone: "9876543210",
-    password: "staff123",
-    role: "Cashier",
-    shopId: 1,
-    createdAt: new Date(),
-  },
-];
+    const { name, email, password } = req.body;
 
-const mockUsers = [];
-const mockTables = [
-  { id: 1, tableNo: 1, status: "Available", seats: 4, shopId: 1 },
-  { id: 2, tableNo: 2, status: "Available", seats: 4, shopId: 1 },
-  { id: 3, tableNo: 3, status: "Available", seats: 6, shopId: 1 },
-];
-const mockOrders = [];
-const mockPayments = [];
+    if (!name || !email || !password) {
+      return res.status(400).json({ success: false, message: "All fields required" });
+    }
+
+    // Check if SuperAdmin already exists
+    const existing = await db.query('SELECT id FROM "SuperAdmin" LIMIT 1');
+    if (existing.rows.length > 0) {
+      return res.status(403).json({ success: false, message: "SuperAdmin already exists" });
+    }
+
+    // Create SuperAdmin
+    const result = await db.query(
+      'INSERT INTO "SuperAdmin" (name, email, password, "createdAt", "updatedAt") VALUES ($1, $2, $3, NOW(), NOW()) RETURNING id, name, email',
+      [name, email, password]
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "SuperAdmin created successfully",
+      data: result.rows[0]
+    });
+  } catch (error) {
+    console.error("SuperAdmin register error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 
 // ==================== SHOP ROUTES ====================
+
 app.get("/api/shop", async (req, res) => {
   try {
-    if (db) {
-      const result = await db.query('SELECT * FROM "Shop" ORDER BY id DESC');
-      res.status(200).json({ success: true, data: result.rows });
-    } else {
-      // Fallback to mock data if database not available
-      res.status(200).json({ success: true, data: mockShops });
+    if (!db) {
+      return res.status(503).json({ success: false, message: "Database not connected" });
     }
+
+    const result = await db.query('SELECT * FROM "Shop" ORDER BY id DESC');
+    res.status(200).json({ success: true, data: result.rows });
   } catch (error) {
     console.error("Error fetching shops:", error);
-    // Fallback to mock data on error
-    res.status(200).json({ success: true, data: mockShops });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
 app.get("/api/shop/:id", async (req, res) => {
   try {
-    let shop;
-    if (db) {
-      const result = await db.query('SELECT * FROM "Shop" WHERE id = $1', [parseInt(req.params.id)]);
-      shop = result.rows[0];
-    } else {
-      // Fallback to mock data
-      shop = mockShops.find(s => s.id === parseInt(req.params.id));
+    if (!db) {
+      return res.status(503).json({ success: false, message: "Database not connected" });
     }
 
-    if (shop) {
-      res.status(200).json({ success: true, data: shop });
-    } else {
-      res.status(404).json({ success: false, message: "Shop not found" });
+    const result = await db.query('SELECT * FROM "Shop" WHERE id = $1', [parseInt(req.params.id)]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: "Shop not found" });
     }
+
+    res.status(200).json({ success: true, data: result.rows[0] });
   } catch (error) {
     console.error("Error fetching shop:", error);
     res.status(500).json({ success: false, message: error.message });
@@ -149,47 +181,33 @@ app.get("/api/shop/:id", async (req, res) => {
 // Register new shop
 app.post("/api/shop/register", async (req, res) => {
   try {
+    if (!db) {
+      return res.status(503).json({ success: false, message: "Database not connected" });
+    }
+
     const { name, ownerName, email, phone, address, password } = req.body;
 
     if (!name || !ownerName || !email || !password) {
-      return res.status(400).json({ success: false, message: "All fields are required" });
+      return res.status(400).json({ success: false, message: "All required fields must be filled" });
     }
 
-    if (db) {
-      // Check if email already exists
-      const existing = await db.query('SELECT id FROM "Shop" WHERE email = $1', [email]);
-      if (existing.rows.length > 0) {
-        return res.status(400).json({ success: false, message: "Email already registered" });
-      }
-
-      // Create new shop with pending status
-      const result = await db.query(
-        'INSERT INTO "Shop" (name, "ownerName", email, phone, address, password, status, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW()) RETURNING *',
-        [name, ownerName, email, phone, address || '', password, 'pending']
-      );
-      const newShop = result.rows[0];
-      res.status(201).json({ success: true, message: "Shop registered successfully!", data: newShop });
-    } else {
-      // Fallback to mock data
-      const existingShop = mockShops.find(s => s.email === email);
-      if (existingShop) {
-        return res.status(400).json({ success: false, message: "Email already registered" });
-      }
-
-      const newShop = {
-        id: Math.max(...mockShops.map(s => s.id), 0) + 1,
-        name,
-        ownerName,
-        email,
-        phone,
-        address,
-        password,
-        status: "pending",
-        createdAt: new Date().toISOString()
-      };
-      mockShops.push(newShop);
-      res.status(201).json({ success: true, message: "Shop registered successfully!", data: newShop });
+    // Check if email exists
+    const existing = await db.query('SELECT id FROM "Shop" WHERE email = $1', [email]);
+    if (existing.rows.length > 0) {
+      return res.status(400).json({ success: false, message: "Email already registered" });
     }
+
+    // Create shop
+    const result = await db.query(
+      'INSERT INTO "Shop" (name, "ownerName", email, phone, address, password, status, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW()) RETURNING *',
+      [name, ownerName, email, phone, address || '', password, 'pending']
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Shop registered successfully! Awaiting SuperAdmin approval.",
+      data: result.rows[0]
+    });
   } catch (error) {
     console.error("Error registering shop:", error);
     res.status(500).json({ success: false, message: error.message });
@@ -199,28 +217,22 @@ app.post("/api/shop/register", async (req, res) => {
 // Approve shop
 app.put("/api/shop/:id/approve", async (req, res) => {
   try {
+    if (!db) {
+      return res.status(503).json({ success: false, message: "Database not connected" });
+    }
+
     const shopId = parseInt(req.params.id);
 
-    if (db) {
-      const result = await db.query(
-        'UPDATE "Shop" SET status = $1, "updatedAt" = NOW() WHERE id = $2 RETURNING *',
-        ['approved', shopId]
-      );
+    const result = await db.query(
+      'UPDATE "Shop" SET status = $1, "updatedAt" = NOW() WHERE id = $2 RETURNING *',
+      ['approved', shopId]
+    );
 
-      if (result.rows.length === 0) {
-        return res.status(404).json({ success: false, message: "Shop not found" });
-      }
-
-      res.status(200).json({ success: true, message: "Shop approved!", data: result.rows[0] });
-    } else {
-      // Fallback to mock data
-      const shop = mockShops.find(s => s.id === shopId);
-      if (!shop) {
-        return res.status(404).json({ success: false, message: "Shop not found" });
-      }
-      shop.status = "approved";
-      res.status(200).json({ success: true, message: "Shop approved!", data: shop });
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: "Shop not found" });
     }
+
+    res.status(200).json({ success: true, message: "Shop approved!", data: result.rows[0] });
   } catch (error) {
     console.error("Error approving shop:", error);
     res.status(500).json({ success: false, message: error.message });
@@ -230,28 +242,22 @@ app.put("/api/shop/:id/approve", async (req, res) => {
 // Reject/Disapprove shop
 app.put("/api/shop/:id/reject", async (req, res) => {
   try {
+    if (!db) {
+      return res.status(503).json({ success: false, message: "Database not connected" });
+    }
+
     const shopId = parseInt(req.params.id);
 
-    if (db) {
-      const result = await db.query(
-        'UPDATE "Shop" SET status = $1, "updatedAt" = NOW() WHERE id = $2 RETURNING *',
-        ['pending', shopId]
-      );
+    const result = await db.query(
+      'UPDATE "Shop" SET status = $1, "updatedAt" = NOW() WHERE id = $2 RETURNING *',
+      ['pending', shopId]
+    );
 
-      if (result.rows.length === 0) {
-        return res.status(404).json({ success: false, message: "Shop not found" });
-      }
-
-      res.status(200).json({ success: true, message: "Shop disapproved!", data: result.rows[0] });
-    } else {
-      // Fallback to mock data
-      const shop = mockShops.find(s => s.id === shopId);
-      if (!shop) {
-        return res.status(404).json({ success: false, message: "Shop not found" });
-      }
-      shop.status = "pending";
-      res.status(200).json({ success: true, message: "Shop disapproved!", data: shop });
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: "Shop not found" });
     }
+
+    res.status(200).json({ success: true, message: "Shop disapproved!", data: result.rows[0] });
   } catch (error) {
     console.error("Error rejecting shop:", error);
     res.status(500).json({ success: false, message: error.message });
@@ -261,33 +267,27 @@ app.put("/api/shop/:id/reject", async (req, res) => {
 // Delete shop
 app.delete("/api/shop/:id", async (req, res) => {
   try {
+    if (!db) {
+      return res.status(503).json({ success: false, message: "Database not connected" });
+    }
+
     const shopId = parseInt(req.params.id);
 
-    if (db) {
-      // Delete all staff for this shop first
-      try {
-        await db.query('DELETE FROM "User" WHERE "shopId" = $1', [shopId]);
-      } catch (e) {
-        console.warn("Warning deleting staff:", e.message);
-      }
-
-      // Delete the shop
-      const result = await db.query('DELETE FROM "Shop" WHERE id = $1 RETURNING *', [shopId]);
-
-      if (result.rows.length === 0) {
-        return res.status(404).json({ success: false, message: "Shop not found" });
-      }
-
-      res.status(200).json({ success: true, message: "Shop deleted!", data: result.rows[0] });
-    } else {
-      // Fallback to mock data
-      const index = mockShops.findIndex(s => s.id === shopId);
-      if (index === -1) {
-        return res.status(404).json({ success: false, message: "Shop not found" });
-      }
-      const deletedShop = mockShops.splice(index, 1)[0];
-      res.status(200).json({ success: true, message: "Shop deleted!", data: deletedShop });
+    // Delete all staff for this shop
+    try {
+      await db.query('DELETE FROM "User" WHERE "shopId" = $1', [shopId]);
+    } catch (e) {
+      console.warn("Warning deleting staff:", e.message);
     }
+
+    // Delete the shop
+    const result = await db.query('DELETE FROM "Shop" WHERE id = $1 RETURNING *', [shopId]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: "Shop not found" });
+    }
+
+    res.status(200).json({ success: true, message: "Shop deleted permanently!", data: result.rows[0] });
   } catch (error) {
     console.error("Error deleting shop:", error);
     res.status(500).json({ success: false, message: error.message });
@@ -295,213 +295,309 @@ app.delete("/api/shop/:id", async (req, res) => {
 });
 
 // ==================== STAFF ROUTES ====================
-// Get all staff for a shop
-app.get("/api/staff/shop/:shopId", (req, res) => {
-  const shopId = parseInt(req.params.shopId);
-  const staff = mockStaff.filter(s => s.shopId === shopId);
-  res.status(200).json({ success: true, data: staff });
-});
 
-// Add new staff to shop
-app.post("/api/staff", (req, res) => {
-  const { name, email, phone, password, role, shopId } = req.body;
-
-  if (!name || !email || !password || !role || !shopId) {
-    return res.status(400).json({ success: false, message: "All fields are required" });
-  }
-
-  // Check if email already exists
-  if (mockStaff.find(s => s.email === email)) {
-    return res.status(400).json({ success: false, message: "Email already exists" });
-  }
-
-  const newStaff = {
-    id: mockStaff.length + 1,
-    name,
-    email,
-    phone,
-    password,
-    role,
-    shopId,
-    createdAt: new Date(),
-  };
-
-  mockStaff.push(newStaff);
-  res.status(201).json({ success: true, message: "Staff added successfully!", data: newStaff });
-});
-
-// Update staff
-app.put("/api/staff/:id", (req, res) => {
-  const { name, email, phone, role } = req.body;
-  const staff = mockStaff.find(s => s.id === parseInt(req.params.id));
-
-  if (!staff) {
-    return res.status(404).json({ success: false, message: "Staff not found" });
-  }
-
-  if (name) staff.name = name;
-  if (email) staff.email = email;
-  if (phone) staff.phone = phone;
-  if (role) staff.role = role;
-
-  res.status(200).json({ success: true, message: "Staff updated!", data: staff });
-});
-
-// Delete staff
-app.delete("/api/staff/:id", (req, res) => {
-  const index = mockStaff.findIndex(s => s.id === parseInt(req.params.id));
-
-  if (index === -1) {
-    return res.status(404).json({ success: false, message: "Staff not found" });
-  }
-
-  const deletedStaff = mockStaff.splice(index, 1);
-  res.status(200).json({ success: true, message: "Staff deleted!", data: deletedStaff[0] });
-});
-
-// ==================== USER/STAFF LOGIN ROUTES ====================
-app.post("/api/user/register", (req, res) => {
-  const { name, phone, email, password, role } = req.body;
-  const user = { id: mockUsers.length + 1, name, phone, email, password, role, createdAt: new Date(), updatedAt: new Date() };
-  mockUsers.push(user);
-  res.status(201).json({ success: true, message: "New user created!", data: user });
-});
-
-// Staff login
-app.post("/api/staff/login", (req, res) => {
-  const { email, password, shopId } = req.body;
-
-  if (!email || !password || !shopId) {
-    return res.status(400).json({ success: false, message: "Email, password, and shop ID are required" });
-  }
-
-  const staff = mockStaff.find(s => s.email === email && s.shopId === parseInt(shopId));
-
-  if (!staff || staff.password !== password) {
-    return res.status(401).json({ success: false, message: "Invalid credentials" });
-  }
-
-  res.cookie('accessToken', 'mock-staff-token-' + staff.id, { httpOnly: true });
-  res.status(200).json({
-    success: true,
-    message: "Login successful",
-    data: {
-      id: staff.id,
-      name: staff.name,
-      email: staff.email,
-      phone: staff.phone,
-      role: staff.role,
-      shopId: staff.shopId,
-      _id: staff.id
+app.get("/api/staff/shop/:shopId", async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({ success: false, message: "Database not connected" });
     }
-  });
-});
 
-app.post("/api/user/login", (req, res) => {
-  const { email, password } = req.body;
-  const user = mockUsers.find(u => u.email === email);
-  if (!user || user.password !== password) {
-    return res.status(401).json({ success: false, message: "Invalid credentials" });
-  }
-  res.cookie('accessToken', 'mock-token', { httpOnly: true });
-  res.status(200).json({ success: true, message: "Login successful", data: user });
-});
-
-app.get("/api/user", (req, res) => {
-  res.status(200).json({ success: true, data: { id: 1, name: "Test User", role: "admin" } });
-});
-
-app.post("/api/user/logout", (req, res) => {
-  res.clearCookie('accessToken');
-  res.status(200).json({ success: true, message: "Logout successful" });
-});
-
-// Table Routes
-app.post("/api/table", (req, res) => {
-  const { tableNo, seats } = req.body;
-  if (!tableNo || !seats) {
-    return res.status(400).json({ success: false, message: "Table number and seats are required" });
-  }
-  const table = { id: mockTables.length + 1, tableNo, seats, status: "Available", currentOrder: null };
-  mockTables.push(table);
-  res.status(201).json({ success: true, message: "Table added!", data: table });
-});
-
-app.post("/api/table/", (req, res) => {
-  const { tableNo, seats } = req.body;
-  if (!tableNo || !seats) {
-    return res.status(400).json({ success: false, message: "Table number and seats are required" });
-  }
-  const table = { id: mockTables.length + 1, tableNo, seats, status: "Available", currentOrder: null };
-  mockTables.push(table);
-  res.status(201).json({ success: true, message: "Table added!", data: table });
-});
-
-app.get("/api/table", (req, res) => {
-  res.status(200).json({ success: true, data: mockTables });
-});
-
-app.put("/api/table/:id", (req, res) => {
-  const { status, orderId } = req.body;
-  const table = mockTables.find(t => t.id === parseInt(req.params.id));
-  if (table) {
-    if (status) table.status = status;
-    if (orderId !== undefined) table.currentOrder = orderId;
-    res.status(200).json({ success: true, message: "Table updated!", data: table });
-  } else {
-    res.status(404).json({ success: false, message: "Table not found" });
+    const shopId = parseInt(req.params.shopId);
+    const result = await db.query('SELECT * FROM "User" WHERE "shopId" = $1 ORDER BY id DESC', [shopId]);
+    res.status(200).json({ success: true, data: result.rows });
+  } catch (error) {
+    console.error("Error fetching staff:", error);
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// Order Routes
-app.post("/api/order", (req, res) => {
-  const order = { id: mockOrders.length + 1, ...req.body, createdAt: new Date(), updatedAt: new Date() };
-  mockOrders.push(order);
-  res.status(201).json({ success: true, message: "Order created!", data: order });
-});
+app.post("/api/staff", async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({ success: false, message: "Database not connected" });
+    }
 
-app.post("/api/order/", (req, res) => {
-  const order = { id: mockOrders.length + 1, ...req.body, createdAt: new Date(), updatedAt: new Date() };
-  mockOrders.push(order);
-  res.status(201).json({ success: true, message: "Order created!", data: order });
-});
+    const { name, email, phone, password, role, shopId } = req.body;
 
-app.get("/api/order", (req, res) => {
-  res.status(200).json({ success: true, data: mockOrders });
-});
+    if (!name || !email || !password || !role || !shopId) {
+      return res.status(400).json({ success: false, message: "All fields are required" });
+    }
 
-app.get("/api/order/:id", (req, res) => {
-  const order = mockOrders.find(o => o.id === parseInt(req.params.id));
-  if (order) {
-    res.status(200).json({ success: true, data: order });
-  } else {
-    res.status(404).json({ success: false, message: "Order not found" });
+    // Check if email exists
+    const existing = await db.query('SELECT id FROM "User" WHERE email = $1', [email]);
+    if (existing.rows.length > 0) {
+      return res.status(400).json({ success: false, message: "Email already exists" });
+    }
+
+    const result = await db.query(
+      'INSERT INTO "User" (name, email, phone, password, role, "shopId", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW()) RETURNING *',
+      [name, email, phone, password, role, shopId]
+    );
+
+    res.status(201).json({ success: true, message: "Staff added successfully!", data: result.rows[0] });
+  } catch (error) {
+    console.error("Error creating staff:", error);
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
-app.put("/api/order/:id", (req, res) => {
-  const { orderStatus } = req.body;
-  const order = mockOrders.find(o => o.id === parseInt(req.params.id));
-  if (order) {
-    if (orderStatus) order.orderStatus = orderStatus;
-    order.updatedAt = new Date();
-    res.status(200).json({ success: true, message: "Order updated", data: order });
-  } else {
-    res.status(404).json({ success: false, message: "Order not found" });
+app.put("/api/staff/:id", async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({ success: false, message: "Database not connected" });
+    }
+
+    const { name, email, phone, role } = req.body;
+    const staffId = parseInt(req.params.id);
+
+    const result = await db.query(
+      'UPDATE "User" SET name = COALESCE($1, name), email = COALESCE($2, email), phone = COALESCE($3, phone), role = COALESCE($4, role), "updatedAt" = NOW() WHERE id = $5 RETURNING *',
+      [name || null, email || null, phone || null, role || null, staffId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: "Staff not found" });
+    }
+
+    res.status(200).json({ success: true, message: "Staff updated!", data: result.rows[0] });
+  } catch (error) {
+    console.error("Error updating staff:", error);
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// Payment Routes
-app.post("/api/payment/create-order", (req, res) => {
-  res.status(200).json({ success: true, order: { id: "mock_order_" + Date.now() } });
+app.delete("/api/staff/:id", async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({ success: false, message: "Database not connected" });
+    }
+
+    const staffId = parseInt(req.params.id);
+
+    const result = await db.query('DELETE FROM "User" WHERE id = $1 RETURNING *', [staffId]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: "Staff not found" });
+    }
+
+    res.status(200).json({ success: true, message: "Staff deleted!", data: result.rows[0] });
+  } catch (error) {
+    console.error("Error deleting staff:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
-app.post("/api/payment/verify", (req, res) => {
-  res.json({ success: true, message: "Payment verified successfully!" });
+// ==================== STAFF LOGIN ====================
+
+app.post("/api/staff/login", async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({ success: false, message: "Database not connected" });
+    }
+
+    const { email, password, shopId } = req.body;
+
+    if (!email || !password || !shopId) {
+      return res.status(400).json({ success: false, message: "Email, password, and shop ID are required" });
+    }
+
+    const result = await db.query(
+      'SELECT * FROM "User" WHERE email = $1 AND password = $2 AND "shopId" = $3',
+      [email, password, parseInt(shopId)]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(401).json({ success: false, message: "Invalid credentials" });
+    }
+
+    const staff = result.rows[0];
+    res.cookie('accessToken', 'staff-' + staff.id, { httpOnly: true });
+    res.status(200).json({
+      success: true,
+      message: "Login successful",
+      data: {
+        id: staff.id,
+        name: staff.name,
+        email: staff.email,
+        phone: staff.phone,
+        role: staff.role,
+        shopId: staff.shopId,
+        _id: staff.id
+      }
+    });
+  } catch (error) {
+    console.error("Staff login error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
-app.post("/api/payment/webhook", (req, res) => {
-  res.json({ success: true });
+// ==================== TABLE ROUTES ====================
+
+app.get("/api/table", async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({ success: false, message: "Database not connected" });
+    }
+
+    const shopId = req.query.shopId;
+    let query = 'SELECT * FROM "Table" ORDER BY id DESC';
+    let values = [];
+
+    if (shopId) {
+      query = 'SELECT * FROM "Table" WHERE "shopId" = $1 ORDER BY id DESC';
+      values = [parseInt(shopId)];
+    }
+
+    const result = await db.query(query, values);
+    res.status(200).json({ success: true, data: result.rows });
+  } catch (error) {
+    console.error("Error fetching tables:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.post("/api/table", async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({ success: false, message: "Database not connected" });
+    }
+
+    const { tableNo, seats, shopId } = req.body;
+
+    if (!tableNo || !seats || !shopId) {
+      return res.status(400).json({ success: false, message: "Table number, seats, and shop ID are required" });
+    }
+
+    const result = await db.query(
+      'INSERT INTO "Table" ("tableNo", seats, "shopId", status, "currentOrder", "createdAt") VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING *',
+      [tableNo, seats, parseInt(shopId), 'Available', null]
+    );
+
+    res.status(201).json({ success: true, message: "Table added!", data: result.rows[0] });
+  } catch (error) {
+    console.error("Error creating table:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.put("/api/table/:id", async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({ success: false, message: "Database not connected" });
+    }
+
+    const { status, orderId } = req.body;
+    const tableId = parseInt(req.params.id);
+
+    const result = await db.query(
+      'UPDATE "Table" SET status = COALESCE($1, status), "currentOrder" = COALESCE($2, "currentOrder") WHERE id = $3 RETURNING *',
+      [status || null, orderId || null, tableId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: "Table not found" });
+    }
+
+    res.status(200).json({ success: true, message: "Table updated!", data: result.rows[0] });
+  } catch (error) {
+    console.error("Error updating table:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.delete("/api/table/:id", async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({ success: false, message: "Database not connected" });
+    }
+
+    const tableId = parseInt(req.params.id);
+
+    const result = await db.query('DELETE FROM "Table" WHERE id = $1 RETURNING *', [tableId]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: "Table not found" });
+    }
+
+    res.status(200).json({ success: true, message: "Table deleted!", data: result.rows[0] });
+  } catch (error) {
+    console.error("Error deleting table:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// ==================== ORDER ROUTES ====================
+
+app.post("/api/order", async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({ success: false, message: "Database not connected" });
+    }
+
+    const { customerDetails, orderStatus, bills, items, tableId, shopId, paymentMethod, paymentData } = req.body;
+
+    if (!shopId) {
+      return res.status(400).json({ success: false, message: "Shop ID is required" });
+    }
+
+    const result = await db.query(
+      'INSERT INTO "Order" ("customerDetails", "orderStatus", bills, items, "tableId", "shopId", "paymentMethod", "paymentData", "orderDate", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW(), NOW()) RETURNING *',
+      [customerDetails || '', orderStatus || 'pending', bills || '', items || '', tableId || null, shopId, paymentMethod || '', paymentData || '']
+    );
+
+    res.status(201).json({ success: true, message: "Order created!", data: result.rows[0] });
+  } catch (error) {
+    console.error("Error creating order:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.get("/api/order", async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({ success: false, message: "Database not connected" });
+    }
+
+    const shopId = req.query.shopId;
+    let query = 'SELECT * FROM "Order" ORDER BY "orderDate" DESC';
+    let values = [];
+
+    if (shopId) {
+      query = 'SELECT * FROM "Order" WHERE "shopId" = $1 ORDER BY "orderDate" DESC';
+      values = [parseInt(shopId)];
+    }
+
+    const result = await db.query(query, values);
+    res.status(200).json({ success: true, data: result.rows });
+  } catch (error) {
+    console.error("Error fetching orders:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.put("/api/order/:id", async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({ success: false, message: "Database not connected" });
+    }
+
+    const { orderStatus } = req.body;
+    const orderId = parseInt(req.params.id);
+
+    const result = await db.query(
+      'UPDATE "Order" SET "orderStatus" = COALESCE($1, "orderStatus"), "updatedAt" = NOW() WHERE id = $2 RETURNING *',
+      [orderStatus || null, orderId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+
+    res.status(200).json({ success: true, message: "Order updated!", data: result.rows[0] });
+  } catch (error) {
+    console.error("Error updating order:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 // Global Error Handler
@@ -510,4 +606,6 @@ app.use(globalErrorHandler);
 // Server
 app.listen(PORT, () => {
     console.log(`☑️  POS Server is listening on port ${PORT}`);
+    console.log(`📊 Connected to: Neon PostgreSQL Database`);
+    console.log(`🚀 No mock data - Database only mode`);
 })

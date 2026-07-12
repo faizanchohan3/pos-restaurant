@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { enqueueSnackbar } from "notistack";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://pos-backend-lime.vercel.app";
+
 const SuperAdminLogin = () => {
   const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
@@ -23,29 +25,37 @@ const SuperAdminLogin = () => {
 
     setLoading(true);
     try {
-      // Check against real SuperAdmin from Neon database
-      // This is the only SuperAdmin credential - from the Neon database
-      const admin = {
-        id: 1,
-        name: "Faizan",
-        email: "faizanchohan30@gmail.com",
-        password: "Fai-9090",
-      };
+      // Call API to authenticate SuperAdmin from Neon database
+      const response = await fetch(`${API_BASE_URL}/api/superadmin/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: loginData.email,
+          password: loginData.password,
+        }),
+      });
 
-      if (loginData.email !== admin.email || loginData.password !== admin.password) {
-        enqueueSnackbar("Invalid credentials! Use faizanchohan30@gmail.com", { variant: "error" });
+      const data = await response.json();
+
+      if (!response.ok) {
+        enqueueSnackbar(data.message || "Invalid credentials", { variant: "error" });
         return;
       }
 
       // Store superadmin session
       localStorage.setItem(
         "superAdminSession",
-        JSON.stringify({ id: admin.id, name: admin.name, email: admin.email })
+        JSON.stringify({ id: data.data.id, name: data.data.name, email: data.data.email })
       );
       enqueueSnackbar("Login successful!", { variant: "success" });
 
       // Redirect to superadmin dashboard
       setTimeout(() => navigate("/superadmin"), 1500);
+    } catch (error) {
+      console.error("Login error:", error);
+      enqueueSnackbar("Connection error. Please try again.", { variant: "error" });
     } finally {
       setLoading(false);
     }
@@ -69,18 +79,25 @@ const SuperAdminLogin = () => {
 
     setLoading(true);
     try {
-      const newAdmin = {
-        id: Date.now(),
-        name: registerData.name,
-        email: registerData.email,
-        password: registerData.password,
-      };
+      // Call API to create SuperAdmin in Neon database
+      const response = await fetch(`${API_BASE_URL}/api/superadmin/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: registerData.name,
+          email: registerData.email,
+          password: registerData.password,
+        }),
+      });
 
-      const superAdmins = JSON.parse(
-        localStorage.getItem("superAdmins") || "[]"
-      );
-      superAdmins.push(newAdmin);
-      localStorage.setItem("superAdmins", JSON.stringify(superAdmins));
+      const data = await response.json();
+
+      if (!response.ok) {
+        enqueueSnackbar(data.message || "Registration failed", { variant: "error" });
+        return;
+      }
 
       enqueueSnackbar(
         "SuperAdmin account created successfully! Please login.",
@@ -93,6 +110,9 @@ const SuperAdminLogin = () => {
         confirmPassword: "",
       });
       setTimeout(() => setIsLogin(true), 2000);
+    } catch (error) {
+      console.error("Registration error:", error);
+      enqueueSnackbar("Connection error. Please try again.", { variant: "error" });
     } finally {
       setLoading(false);
     }

@@ -85,9 +85,9 @@ const Auth = () => {
             {/* Info Box */}
             <div className="mt-8 p-4 bg-[#2a2a2a] border border-[#383838] rounded-lg text-center">
               <p className="text-[#ababab] text-xs">
-                <span className="text-yellow-400 font-semibold">SuperAdmin:</span> faizanchohan30@gmail.com / Fai-9090
+                <span className="text-blue-400 font-semibold">👤 Admin/Shop Login:</span> Login with your registered shop account
                 <br />
-                <span className="text-blue-400 font-semibold">Admin:</span> test@admin.com / admin123
+                <span className="text-yellow-400 font-semibold">👑 SuperAdmin:</span> Only database-registered admins can login
               </p>
             </div>
           </>

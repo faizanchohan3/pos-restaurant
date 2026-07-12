@@ -21,17 +21,17 @@ const Login = () => {
 
     const checkSuperAdmin = async (email, password) => {
       try {
-        // Query backend for SuperAdmin authentication
-        // This will be implemented when SuperAdmin API endpoint is created
-        // For now, use the real SuperAdmin from Neon database
-        if (email === "faizanchohan30@gmail.com" && password === "Fai-9090") {
-          return {
-            id: 1,
-            name: "Faizan",
-            email: "faizanchohan30@gmail.com",
-          };
-        }
-        return null;
+        // Query backend API for SuperAdmin authentication from Neon database
+        const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://pos-backend-lime.vercel.app";
+        const response = await fetch(`${API_BASE_URL}/api/superadmin/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+
+        if (!response.ok) return null;
+        const data = await response.json();
+        return data.data;
       } catch (error) {
         console.error("SuperAdmin login error:", error);
         return null;
