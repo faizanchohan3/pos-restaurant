@@ -1,16 +1,100 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { Navigate } from "react-router-dom";
+import { enqueueSnackbar } from "notistack";
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://pos-backend-lime.vercel.app";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { role, name } = useSelector((state) => state.user);
+  const [stats, setStats] = useState({
+    totalStaff: 0,
+    activeOrders: 0,
+    totalProducts: 0,
+    todayRevenue: 0,
+  });
+  const [loading, setLoading] = useState(true);
 
   // Only Admin can see this
   if (role !== "Admin") {
     return <Navigate to="/" />;
   }
+
+  // Get shop_id from localStorage (set during login)
+  const shopId = localStorage.getItem("selectedShop");
+
+  useEffect(() => {
+    fetchDashboardStats();
+  }, []);
+
+  const fetchDashboardStats = async () => {
+    if (!shopId) {
+      enqueueSnackbar("Shop ID not found", { variant: "error" });
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Fetch staff count for this shop
+      const staffRes = await fetch(`${API_BASE_URL}/api/staff/shop/${shopId}`);
+      const staffData = await staffRes.json();
+      const totalStaff = staffData.success ? staffData.data.length : 0;
+
+      // Fetch products for this shop (if endpoint exists)
+      let totalProducts = 0;
+      try {
+        const productsRes = await fetch(`${API_BASE_URL}/api/products?shopId=${shopId}`);
+        if (productsRes.ok) {
+          const productsData = await productsRes.json();
+          totalProducts = productsData.success ? productsData.data.length : 0;
+        }
+      } catch (e) {
+        console.log("Products endpoint not available");
+      }
+
+      // Fetch orders for today (if endpoint exists)
+      let activeOrders = 0;
+      let todayRevenue = 0;
+      try {
+        const ordersRes = await fetch(`${API_BASE_URL}/api/order?shopId=${shopId}`);
+        if (ordersRes.ok) {
+          const ordersData = await ordersRes.json();
+          if (ordersData.success && ordersData.data) {
+            // Filter orders from today
+            const today = new Date().toDateString();
+            const todayOrders = ordersData.data.filter(
+              (order) => new Date(order.createdAt).toDateString() === today
+            );
+            activeOrders = todayOrders.filter(
+              (o) => o.orderStatus !== "completed" && o.orderStatus !== "cancelled"
+            ).length;
+
+            // Calculate today's revenue
+            todayRevenue = todayOrders.reduce((sum, order) => {
+              return sum + (parseFloat(order.bills) || 0);
+            }, 0);
+          }
+        }
+      } catch (e) {
+        console.log("Orders endpoint not fully available");
+      }
+
+      setStats({
+        totalStaff,
+        activeOrders,
+        totalProducts,
+        todayRevenue,
+      });
+    } catch (error) {
+      console.error("Error fetching dashboard stats:", error);
+      enqueueSnackbar("Failed to load dashboard stats", { variant: "error" });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const adminMenus = [
     {
@@ -96,19 +180,27 @@ const AdminDashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-12">
           <div className="bg-[#2a2a2a] border border-[#383838] rounded-lg p-6">
             <p className="text-[#ababab] text-sm mb-2">Total Staff</p>
-            <p className="text-3xl font-bold text-blue-400">12</p>
+            <p className="text-3xl font-bold text-blue-400">
+              {loading ? "..." : stats.totalStaff}
+            </p>
           </div>
           <div className="bg-[#2a2a2a] border border-[#383838] rounded-lg p-6">
             <p className="text-[#ababab] text-sm mb-2">Active Orders</p>
-            <p className="text-3xl font-bold text-green-400">5</p>
+            <p className="text-3xl font-bold text-green-400">
+              {loading ? "..." : stats.activeOrders}
+            </p>
           </div>
           <div className="bg-[#2a2a2a] border border-[#383838] rounded-lg p-6">
             <p className="text-[#ababab] text-sm mb-2">Products</p>
-            <p className="text-3xl font-bold text-purple-400">48</p>
+            <p className="text-3xl font-bold text-purple-400">
+              {loading ? "..." : stats.totalProducts}
+            </p>
           </div>
           <div className="bg-[#2a2a2a] border border-[#383838] rounded-lg p-6">
             <p className="text-[#ababab] text-sm mb-2">Today's Revenue</p>
-            <p className="text-3xl font-bold text-yellow-400">PKR 5,240</p>
+            <p className="text-3xl font-bold text-yellow-400">
+              {loading ? "..." : `PKR ${stats.todayRevenue.toLocaleString()}`}
+            </p>
           </div>
         </div>
       </div>
