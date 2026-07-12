@@ -6,8 +6,9 @@ const defaultHeader = {
   Accept: "application/json",
 };
 
+// Use API_BASE_URL from config (which handles env variables)
 export const axiosWrapper = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_URL || API_BASE_URL,
+  baseURL: API_BASE_URL,
   withCredentials: true,
   headers: { ...defaultHeader },
 });
