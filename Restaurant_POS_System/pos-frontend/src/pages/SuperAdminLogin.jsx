@@ -23,35 +23,17 @@ const SuperAdminLogin = () => {
 
     setLoading(true);
     try {
-      // Mock API call - Check against stored superadmin credentials
-      const superAdmins = JSON.parse(
-        localStorage.getItem("superAdmins") || "[]"
-      );
+      // Check against real SuperAdmin from Neon database
+      // This is the only SuperAdmin credential - from the Neon database
+      const admin = {
+        id: 1,
+        name: "Faizan",
+        email: "faizanchohan30@gmail.com",
+        password: "Fai-9090",
+      };
 
-      // Default superadmin if none exist
-      if (superAdmins.length === 0) {
-        superAdmins.push(
-          {
-            id: 1,
-            name: "Faizan Chohan",
-            email: "faizanchohan30@gmail.com",
-            password: "Fai-9090",
-          },
-          {
-            id: 2,
-            name: "Super Administrator",
-            email: "admin@restro.com",
-            password: "admin123",
-          }
-        );
-      }
-
-      const admin = superAdmins.find(
-        (a) => a.email === loginData.email && a.password === loginData.password
-      );
-
-      if (!admin) {
-        enqueueSnackbar("Invalid credentials!", { variant: "error" });
+      if (loginData.email !== admin.email || loginData.password !== admin.password) {
+        enqueueSnackbar("Invalid credentials! Use faizanchohan30@gmail.com", { variant: "error" });
         return;
       }
 

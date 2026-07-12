@@ -19,25 +19,23 @@ const Login = () => {
       setFormData({...formData, [e.target.name]: e.target.value});
     }
 
-    const checkSuperAdmin = (email, password) => {
-      const superAdmins = JSON.parse(localStorage.getItem("superAdmins") || "[]");
-      if (superAdmins.length === 0) {
-        superAdmins.push(
-          {
+    const checkSuperAdmin = async (email, password) => {
+      try {
+        // Query backend for SuperAdmin authentication
+        // This will be implemented when SuperAdmin API endpoint is created
+        // For now, use the real SuperAdmin from Neon database
+        if (email === "faizanchohan30@gmail.com" && password === "Fai-9090") {
+          return {
             id: 1,
-            name: "Faizan Chohan",
+            name: "Faizan",
             email: "faizanchohan30@gmail.com",
-            password: "Fai-9090",
-          },
-          {
-            id: 2,
-            name: "Super Administrator",
-            email: "admin@restro.com",
-            password: "admin123",
-          }
-        );
+          };
+        }
+        return null;
+      } catch (error) {
+        console.error("SuperAdmin login error:", error);
+        return null;
       }
-      return superAdmins.find(a => a.email === email && a.password === password);
     };
 
     const checkShopLogin = (email, password) => {
@@ -50,7 +48,7 @@ const Login = () => {
       return staffMembers.find(s => s.email === email && s.password === password);
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
       e.preventDefault();
       if (!formData.email || !formData.password) {
         enqueueSnackbar("Please fill all fields", { variant: "warning" });
@@ -58,7 +56,7 @@ const Login = () => {
       }
 
       // Check if it's a SuperAdmin first
-      const superAdmin = checkSuperAdmin(formData.email, formData.password);
+      const superAdmin = await checkSuperAdmin(formData.email, formData.password);
       if (superAdmin) {
         localStorage.setItem("superAdminSession", JSON.stringify({ id: superAdmin.id, name: superAdmin.name, email: superAdmin.email }));
         enqueueSnackbar(`Welcome ${superAdmin.name}! Redirecting to dashboard...`, { variant: "success" });
