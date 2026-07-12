@@ -1,30 +1,33 @@
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
+const { Pool } = require("pg");
 const app = express();
 
-// Initialize Prisma with connection pooling for serverless
-let prisma;
-let prismaError = null;
+// Initialize PostgreSQL connection pool for serverless
+let db = null;
+let dbError = null;
 
 if (process.env.DATABASE_URL) {
   try {
-    const { PrismaClient } = require("@prisma/client");
-    prisma = new PrismaClient({
-      datasources: {
-        db: {
-          url: process.env.DATABASE_URL
-        }
-      }
+    db = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      max: 1, // Minimal connections for serverless
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
+    });
+    db.on('error', (err) => {
+      console.error('DB connection error:', err);
+      db = null;
     });
   } catch (error) {
-    prismaError = error.message;
-    console.warn("Prisma initialization warning:", prismaError);
-    prisma = null;
+    dbError = error.message;
+    console.warn("Database initialization warning:", dbError);
+    db = null;
   }
 } else {
-  console.warn("DATABASE_URL not set - using mock data");
-  prisma = null;
+  console.warn("DATABASE_URL not set - using mock data only");
+  db = null;
 }
 
 const config = require("./config/config");
@@ -45,6 +48,26 @@ app.use(cookieParser())
 // Root Endpoint
 app.get("/", (req,res) => {
     res.json({message : "Hello from POS Server!"});
+})
+
+// Debug endpoint
+app.get("/api/debug", async (req,res) => {
+    let dbConnected = false;
+    if (db) {
+      try {
+        await db.query('SELECT 1');
+        dbConnected = true;
+      } catch (e) {
+        dbConnected = false;
+      }
+    }
+
+    res.json({
+      dbConnected: dbConnected,
+      dbError: dbError,
+      databaseUrl: process.env.DATABASE_URL ? "SET" : "NOT SET",
+      mockShopsCount: mockShops.length
+    });
 })
 
 // ==================== MOCK DATA STORE ====================
@@ -87,11 +110,11 @@ const mockPayments = [];
 // ==================== SHOP ROUTES ====================
 app.get("/api/shop", async (req, res) => {
   try {
-    if (prisma) {
-      const shops = await prisma.shop.findMany();
-      res.status(200).json({ success: true, data: shops });
+    if (db) {
+      const result = await db.query('SELECT * FROM "Shop" ORDER BY id DESC');
+      res.status(200).json({ success: true, data: result.rows });
     } else {
-      // Fallback to mock data if Prisma not available
+      // Fallback to mock data if database not available
       res.status(200).json({ success: true, data: mockShops });
     }
   } catch (error) {
@@ -104,10 +127,9 @@ app.get("/api/shop", async (req, res) => {
 app.get("/api/shop/:id", async (req, res) => {
   try {
     let shop;
-    if (prisma) {
-      shop = await prisma.shop.findUnique({
-        where: { id: parseInt(req.params.id) }
-      });
+    if (db) {
+      const result = await db.query('SELECT * FROM "Shop" WHERE id = $1', [parseInt(req.params.id)]);
+      shop = result.rows[0];
     } else {
       // Fallback to mock data
       shop = mockShops.find(s => s.id === parseInt(req.params.id));
@@ -133,39 +155,28 @@ app.post("/api/shop/register", async (req, res) => {
       return res.status(400).json({ success: false, message: "All fields are required" });
     }
 
-    let existingShop;
-    let newShop;
-
-    if (prisma) {
+    if (db) {
       // Check if email already exists
-      existingShop = await prisma.shop.findUnique({
-        where: { email }
-      });
-
-      if (existingShop) {
+      const existing = await db.query('SELECT id FROM "Shop" WHERE email = $1', [email]);
+      if (existing.rows.length > 0) {
         return res.status(400).json({ success: false, message: "Email already registered" });
       }
 
       // Create new shop with pending status
-      newShop = await prisma.shop.create({
-        data: {
-          name,
-          ownerName,
-          email,
-          phone,
-          address,
-          password,
-          status: "pending"
-        }
-      });
+      const result = await db.query(
+        'INSERT INTO "Shop" (name, "ownerName", email, phone, address, password, status, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW()) RETURNING *',
+        [name, ownerName, email, phone, address || '', password, 'pending']
+      );
+      const newShop = result.rows[0];
+      res.status(201).json({ success: true, message: "Shop registered successfully!", data: newShop });
     } else {
       // Fallback to mock data
-      existingShop = mockShops.find(s => s.email === email);
+      const existingShop = mockShops.find(s => s.email === email);
       if (existingShop) {
         return res.status(400).json({ success: false, message: "Email already registered" });
       }
 
-      newShop = {
+      const newShop = {
         id: Math.max(...mockShops.map(s => s.id), 0) + 1,
         name,
         ownerName,
@@ -177,9 +188,8 @@ app.post("/api/shop/register", async (req, res) => {
         createdAt: new Date().toISOString()
       };
       mockShops.push(newShop);
+      res.status(201).json({ success: true, message: "Shop registered successfully!", data: newShop });
     }
-
-    res.status(201).json({ success: true, message: "Shop registered successfully!", data: newShop });
   } catch (error) {
     console.error("Error registering shop:", error);
     res.status(500).json({ success: false, message: error.message });
@@ -190,27 +200,30 @@ app.post("/api/shop/register", async (req, res) => {
 app.put("/api/shop/:id/approve", async (req, res) => {
   try {
     const shopId = parseInt(req.params.id);
-    let shop;
 
-    if (prisma) {
-      shop = await prisma.shop.update({
-        where: { id: shopId },
-        data: { status: "approved" }
-      });
-    } else {
-      // Fallback to mock data
-      shop = mockShops.find(s => s.id === shopId);
-      if (shop) {
-        shop.status = "approved";
-      } else {
+    if (db) {
+      const result = await db.query(
+        'UPDATE "Shop" SET status = $1, "updatedAt" = NOW() WHERE id = $2 RETURNING *',
+        ['approved', shopId]
+      );
+
+      if (result.rows.length === 0) {
         return res.status(404).json({ success: false, message: "Shop not found" });
       }
-    }
 
-    res.status(200).json({ success: true, message: "Shop approved!", data: shop });
+      res.status(200).json({ success: true, message: "Shop approved!", data: result.rows[0] });
+    } else {
+      // Fallback to mock data
+      const shop = mockShops.find(s => s.id === shopId);
+      if (!shop) {
+        return res.status(404).json({ success: false, message: "Shop not found" });
+      }
+      shop.status = "approved";
+      res.status(200).json({ success: true, message: "Shop approved!", data: shop });
+    }
   } catch (error) {
     console.error("Error approving shop:", error);
-    res.status(404).json({ success: false, message: "Shop not found" });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
@@ -218,27 +231,30 @@ app.put("/api/shop/:id/approve", async (req, res) => {
 app.put("/api/shop/:id/reject", async (req, res) => {
   try {
     const shopId = parseInt(req.params.id);
-    let shop;
 
-    if (prisma) {
-      shop = await prisma.shop.update({
-        where: { id: shopId },
-        data: { status: "pending" }
-      });
-    } else {
-      // Fallback to mock data
-      shop = mockShops.find(s => s.id === shopId);
-      if (shop) {
-        shop.status = "pending";
-      } else {
+    if (db) {
+      const result = await db.query(
+        'UPDATE "Shop" SET status = $1, "updatedAt" = NOW() WHERE id = $2 RETURNING *',
+        ['pending', shopId]
+      );
+
+      if (result.rows.length === 0) {
         return res.status(404).json({ success: false, message: "Shop not found" });
       }
-    }
 
-    res.status(200).json({ success: true, message: "Shop disapproved!", data: shop });
+      res.status(200).json({ success: true, message: "Shop disapproved!", data: result.rows[0] });
+    } else {
+      // Fallback to mock data
+      const shop = mockShops.find(s => s.id === shopId);
+      if (!shop) {
+        return res.status(404).json({ success: false, message: "Shop not found" });
+      }
+      shop.status = "pending";
+      res.status(200).json({ success: true, message: "Shop disapproved!", data: shop });
+    }
   } catch (error) {
     console.error("Error rejecting shop:", error);
-    res.status(404).json({ success: false, message: "Shop not found" });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
@@ -246,35 +262,35 @@ app.put("/api/shop/:id/reject", async (req, res) => {
 app.delete("/api/shop/:id", async (req, res) => {
   try {
     const shopId = parseInt(req.params.id);
-    let deletedShop;
 
-    if (prisma) {
+    if (db) {
       // Delete all staff for this shop first
       try {
-        await prisma.$executeRawUnsafe(
-          `DELETE FROM "User" WHERE role = 'staff' AND email LIKE $1`,
-          [`%${shopId}%`]
-        );
+        await db.query('DELETE FROM "User" WHERE "shopId" = $1', [shopId]);
       } catch (e) {
-        // Ignore raw query errors
+        console.warn("Warning deleting staff:", e.message);
       }
 
-      deletedShop = await prisma.shop.delete({
-        where: { id: shopId }
-      });
+      // Delete the shop
+      const result = await db.query('DELETE FROM "Shop" WHERE id = $1 RETURNING *', [shopId]);
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({ success: false, message: "Shop not found" });
+      }
+
+      res.status(200).json({ success: true, message: "Shop deleted!", data: result.rows[0] });
     } else {
       // Fallback to mock data
       const index = mockShops.findIndex(s => s.id === shopId);
       if (index === -1) {
         return res.status(404).json({ success: false, message: "Shop not found" });
       }
-      deletedShop = mockShops.splice(index, 1)[0];
+      const deletedShop = mockShops.splice(index, 1)[0];
+      res.status(200).json({ success: true, message: "Shop deleted!", data: deletedShop });
     }
-
-    res.status(200).json({ success: true, message: "Shop deleted!", data: deletedShop });
   } catch (error) {
     console.error("Error deleting shop:", error);
-    res.status(404).json({ success: false, message: "Shop not found" });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
