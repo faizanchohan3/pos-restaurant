@@ -57,7 +57,7 @@ const Orders = () => {
         {
           resData?.data.data.length > 0 ? (
             resData.data.data.map((order) => {
-              return <OrderCard key={order._id} order={order} />
+              return <OrderCard key={order.id} order={order} />
             })
           ) : <p className="col-span-3 text-gray-500">No orders available</p>
         }

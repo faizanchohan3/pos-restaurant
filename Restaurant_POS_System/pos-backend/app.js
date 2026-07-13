@@ -632,11 +632,13 @@ app.get("/api/order", async (req, res) => {
     }
 
     const shopId = req.query.shopId;
-    let query = 'SELECT * FROM "Order" ORDER BY "orderDate" DESC';
+    let query =
+      'SELECT o.*, t."tableNo" FROM "Order" o LEFT JOIN "Table" t ON o."tableId" = t.id ORDER BY o."orderDate" DESC';
     let values = [];
 
     if (shopId) {
-      query = 'SELECT * FROM "Order" WHERE "shopId" = $1 ORDER BY "orderDate" DESC';
+      query =
+        'SELECT o.*, t."tableNo" FROM "Order" o LEFT JOIN "Table" t ON o."tableId" = t.id WHERE o."shopId" = $1 ORDER BY o."orderDate" DESC';
       values = [parseInt(shopId)];
     }
 

@@ -4,7 +4,7 @@ import { GrUpdate } from "react-icons/gr";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { enqueueSnackbar } from "notistack";
 import { getOrders, updateOrderStatus } from "../../https/index";
-import { formatDateAndTime } from "../../utils";
+import { formatDateAndTime, parseJSON } from "../../utils";
 
 const RecentOrders = () => {
   const queryClient = useQueryClient();
@@ -59,13 +59,19 @@ const RecentOrders = () => {
             </tr>
           </thead>
           <tbody>
-            {resData?.data.data.map((order, index) => (
+            {resData?.data.data.map((order, index) => {
+              const customer = parseJSON(order.customerDetails, {});
+              const bills = parseJSON(order.bills, {});
+              const items = parseJSON(order.items, []);
+              const tableNo = order.tableNo ?? order.table?.tableNo ?? order.tableId ?? "-";
+              const grandTotal = Number(bills.totalWithTax ?? bills.total ?? 0);
+              return (
               <tr
-                key={index}
+                key={order.id ?? index}
                 className="border-b border-gray-600 hover:bg-[#333]"
               >
                 <td className="p-4">#{Math.floor(new Date(order.orderDate).getTime())}</td>
-                <td className="p-4">{order.customerDetails.name}</td>
+                <td className="p-4">{customer.name || "Walk-in Customer"}</td>
                 <td className="p-4">
                   <select
                     className={`bg-[#1a1a1a] text-[#f5f5f5] border border-gray-500 p-2 rounded-lg focus:outline-none ${
@@ -74,7 +80,7 @@ const RecentOrders = () => {
                         : "text-yellow-500"
                     }`}
                     value={order.orderStatus}
-                    onChange={(e) => handleStatusChange({orderId: order._id, orderStatus: e.target.value})}
+                    onChange={(e) => handleStatusChange({orderId: order.id, orderStatus: e.target.value})}
                   >
                     <option className="text-yellow-500" value="In Progress">
                       In Progress
@@ -85,14 +91,15 @@ const RecentOrders = () => {
                   </select>
                 </td>
                 <td className="p-4">{formatDateAndTime(order.orderDate)}</td>
-                <td className="p-4">{order.items.length} Items</td>
-                <td className="p-4">Table - {order.table.tableNo}</td>
-                <td className="p-4">PKR {order.bills.totalWithTax}</td>
+                <td className="p-4">{items.length} Items</td>
+                <td className="p-4">Table - {tableNo}</td>
+                <td className="p-4">PKR {grandTotal.toFixed(2)}</td>
                 <td className="p-4">
                   {order.paymentMethod}
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>

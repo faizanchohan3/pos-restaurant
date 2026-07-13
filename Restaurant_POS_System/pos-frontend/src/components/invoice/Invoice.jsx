@@ -1,9 +1,28 @@
-import React, { useRef } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { FaCheck } from "react-icons/fa6";
+import { getShop } from "../../https";
 
 const Invoice = ({ orderInfo, setShowInvoice }) => {
   const invoiceRef = useRef(null);
+  const [shop, setShop] = useState(null);
+
+  // Load the shop's details for the receipt header
+  useEffect(() => {
+    const shopId = localStorage.getItem("selectedShop");
+    if (!shopId) return;
+    getShop(shopId)
+      .then((res) => {
+        if (res.data.success) setShop(res.data.data);
+      })
+      .catch(() => {});
+  }, []);
+
+  const customer = orderInfo?.customerDetails || {};
+  const bills = orderInfo?.bills || {};
+  const items = Array.isArray(orderInfo?.items) ? orderInfo.items : [];
+  const num = (v) => Number(v || 0).toFixed(2);
+
   const handlePrint = () => {
     const printContent = invoiceRef.current.innerHTML;
     const WinPrint = window.open("", "", "width=900,height=650");
@@ -38,6 +57,19 @@ const Invoice = ({ orderInfo, setShowInvoice }) => {
         {/* Receipt Content for Printing */}
 
         <div ref={invoiceRef} className="p-4">
+          {/* Shop Header */}
+          <div className="text-center mb-3">
+            <h1 className="text-lg font-bold uppercase">
+              {shop?.name || "Restaurant"}
+            </h1>
+            {shop?.address && (
+              <p className="text-xs text-gray-600">{shop.address}</p>
+            )}
+            {shop?.phone && (
+              <p className="text-xs text-gray-600">Tel: {shop.phone}</p>
+            )}
+          </div>
+
           {/* Receipt Header */}
           <div className="flex justify-center mb-4">
             <motion.div
@@ -65,16 +97,19 @@ const Invoice = ({ orderInfo, setShowInvoice }) => {
           <div className="mt-4 border-t pt-4 text-sm text-gray-700">
             <p>
               <strong>Order ID:</strong>{" "}
-              {Math.floor(new Date(orderInfo.orderDate).getTime())}
+              {orderInfo?.id ||
+                (orderInfo?.orderDate
+                  ? Math.floor(new Date(orderInfo.orderDate).getTime())
+                  : "-")}
             </p>
             <p>
-              <strong>Name:</strong> {orderInfo.customerDetails.name}
+              <strong>Name:</strong> {customer.name || "Walk-in Customer"}
             </p>
             <p>
-              <strong>Phone:</strong> {orderInfo.customerDetails.phone}
+              <strong>Phone:</strong> {customer.phone || "-"}
             </p>
             <p>
-              <strong>Guests:</strong> {orderInfo.customerDetails.guests}
+              <strong>Guests:</strong> {customer.guests ?? 0}
             </p>
           </div>
 
@@ -83,7 +118,7 @@ const Invoice = ({ orderInfo, setShowInvoice }) => {
           <div className="mt-4 border-t pt-4">
             <h3 className="text-sm font-semibold">Items Ordered</h3>
             <ul className="text-sm text-gray-700">
-              {orderInfo.items.map((item, index) => (
+              {items.map((item, index) => (
                 <li
                   key={index}
                   className="flex justify-between items-center text-xs"
@@ -91,7 +126,7 @@ const Invoice = ({ orderInfo, setShowInvoice }) => {
                   <span>
                     {item.name} x{item.quantity}
                   </span>
-                  <span>PKR {item.price.toFixed(2)}</span>
+                  <span>PKR {num(item.price)}</span>
                 </li>
               ))}
             </ul>
@@ -101,36 +136,32 @@ const Invoice = ({ orderInfo, setShowInvoice }) => {
 
           <div className="mt-4 border-t pt-4 text-sm">
             <p>
-              <strong>Subtotal:</strong> PKR {orderInfo.bills.total.toFixed(2)}
+              <strong>Subtotal:</strong> PKR {num(bills.total)}
             </p>
             <p>
-              <strong>Tax:</strong> PKR {orderInfo.bills.tax.toFixed(2)}
+              <strong>Tax:</strong> PKR {num(bills.tax)}
             </p>
             <p className="text-md font-semibold">
-              <strong>Grand Total:</strong> PKR 
-              {orderInfo.bills.totalWithTax.toFixed(2)}
+              <strong>Grand Total:</strong> PKR {num(bills.totalWithTax)}
             </p>
           </div>
 
           {/* Payment Details */}
 
           <div className="mb-2 mt-2 text-xs">
-            {orderInfo.paymentMethod === "Cash" ? (
-              <p>
-                <strong>Payment Method:</strong> {orderInfo.paymentMethod}
-              </p>
-            ) : (
+            <p>
+              <strong>Payment Method:</strong>{" "}
+              {orderInfo?.paymentMethod || "Cash"}
+            </p>
+            {orderInfo?.paymentData?.razorpay_order_id && (
               <>
                 <p>
-                  <strong>Payment Method:</strong> {orderInfo.paymentMethod}
-                </p>
-                <p>
                   <strong>Razorpay Order ID:</strong>{" "}
-                  {orderInfo.paymentData?.razorpay_order_id}
+                  {orderInfo.paymentData.razorpay_order_id}
                 </p>
                 <p>
                   <strong>Razorpay Payment ID:</strong>{" "}
-                  {orderInfo.paymentData?.razorpay_payment_id}
+                  {orderInfo.paymentData.razorpay_payment_id}
                 </p>
               </>
             )}

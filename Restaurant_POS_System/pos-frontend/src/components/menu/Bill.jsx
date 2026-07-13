@@ -11,6 +11,7 @@ import { enqueueSnackbar } from "notistack";
 import { useMutation } from "@tanstack/react-query";
 import { removeAllItems } from "../../redux/slices/cartSlice";
 import { removeCustomer } from "../../redux/slices/customerSlice";
+import { parseJSON } from "../../utils";
 import Invoice from "../invoice/Invoice";
 
 function loadScript(src) {
@@ -160,9 +161,15 @@ const Bill = () => {
     mutationFn: (reqData) => addOrder(reqData),
     onSuccess: (resData) => {
       const { data } = resData.data;
-      console.log(data);
 
-      setOrderInfo(data);
+      // The API returns customerDetails/bills/items as JSON strings; parse
+      // them back into objects so the Invoice can render them.
+      setOrderInfo({
+        ...data,
+        customerDetails: parseJSON(data.customerDetails, {}),
+        bills: parseJSON(data.bills, {}),
+        items: parseJSON(data.items, []),
+      });
 
       // Update Table (backend returns id / tableId, not _id / table)
       const tableData = {

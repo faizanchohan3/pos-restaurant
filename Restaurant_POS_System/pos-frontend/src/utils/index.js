@@ -16,6 +16,18 @@ export const getBgColor = () => {
   return color;
 };
 
+// Order JSON fields (customerDetails, bills, items) are stored as strings in
+// the DB. Safely parse them into objects/arrays.
+export const parseJSON = (value, fallback) => {
+  if (value === null || value === undefined || value === "") return fallback;
+  if (typeof value === "object") return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
+};
+
 export const getAvatarName = (name) => {
   if(!name) return "";
 
