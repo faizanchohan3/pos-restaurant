@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import BackButton from "../components/shared/BackButton";
 import { enqueueSnackbar } from "notistack";
 import { FiPlus, FiMinus, FiTrash2 } from "react-icons/fi";
+import { FaPrint } from "react-icons/fa";
+import { printReport } from "../utils";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://pos-backend-lime.vercel.app";
 
@@ -12,6 +14,8 @@ const Stock = () => {
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [formData, setFormData] = useState({ name: "", quantity: "", unit: "kg", minLevel: "" });
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("all"); // all | low | ok
 
   useEffect(() => {
     document.title = "POS | Stock";
@@ -97,6 +101,50 @@ const Stock = () => {
 
   const lowStockItems = stockItems.filter(item => item.quantity <= item.minLevel);
 
+  const filteredItems = stockItems.filter((item) => {
+    const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase());
+    const isLow = item.quantity <= item.minLevel;
+    const matchesFilter =
+      filter === "all" || (filter === "low" && isLow) || (filter === "ok" && !isLow);
+    return matchesSearch && matchesFilter;
+  });
+
+  const handlePrint = () => {
+    const shopName = (() => {
+      try {
+        return JSON.parse(localStorage.getItem("shopSession"))?.name || "Stock Report";
+      } catch {
+        return "Stock Report";
+      }
+    })();
+
+    const rows = filteredItems
+      .map(
+        (item) => `
+        <tr>
+          <td>${item.name}</td>
+          <td class="right">${item.quantity}</td>
+          <td>${item.unit}</td>
+          <td class="right">${item.minLevel}</td>
+          <td>${item.quantity <= item.minLevel ? "LOW STOCK" : "OK"}</td>
+        </tr>`
+      )
+      .join("");
+
+    const table = `
+      <table>
+        <thead>
+          <tr><th>Item Name</th><th class="right">Quantity</th><th>Unit</th><th class="right">Min Level</th><th>Status</th></tr>
+        </thead>
+        <tbody>${rows || '<tr><td colspan="5" class="center">No items</td></tr>'}</tbody>
+        <tfoot>
+          <tr><td colspan="5">Total items: ${filteredItems.length} &nbsp; | &nbsp; Low stock: ${filteredItems.filter((i) => i.quantity <= i.minLevel).length}</td></tr>
+        </tfoot>
+      </table>`;
+
+    printReport(`${shopName} — Stock Report`, `Filter: ${filter.toUpperCase()}`, table);
+  };
+
   return (
     <section className="bg-[#1f1f1f] min-h-screen overflow-auto flex flex-col pb-10">
       <div className="flex items-center justify-between px-10 py-4">
@@ -106,12 +154,46 @@ const Stock = () => {
             Stock Management
           </h1>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="bg-yellow-400 text-gray-900 px-5 py-2 rounded-lg font-bold hover:bg-yellow-500"
-        >
-          + Add Stock
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handlePrint}
+            className="flex items-center gap-2 bg-[#2e4a40] text-[#02ca3a] px-4 py-2 rounded-lg font-bold hover:bg-[#345c4d]"
+          >
+            <FaPrint size={16} /> Print
+          </button>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="bg-yellow-400 text-gray-900 px-5 py-2 rounded-lg font-bold hover:bg-yellow-500"
+          >
+            + Add Stock
+          </button>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex items-center gap-3 px-10 mb-4 flex-wrap">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search item..."
+          className="bg-[#2a2a2a] text-white px-4 py-2 rounded-lg focus:outline-none border border-[#383838] focus:border-yellow-500 text-sm w-64"
+        />
+        {[
+          { key: "all", label: "All" },
+          { key: "low", label: "Low Stock" },
+          { key: "ok", label: "In Stock" },
+        ].map((f) => (
+          <button
+            key={f.key}
+            onClick={() => setFilter(f.key)}
+            className={`text-sm font-semibold rounded-lg px-4 py-2 ${
+              filter === f.key ? "bg-[#383838] text-white" : "text-[#ababab]"
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
       </div>
 
       {/* Low Stock Alert */}
@@ -139,9 +221,9 @@ const Stock = () => {
           <tbody>
             {loading ? (
               <tr><td colSpan="5" className="px-4 py-8 text-center text-[#ababab]">Loading...</td></tr>
-            ) : stockItems.length === 0 ? (
-              <tr><td colSpan="5" className="px-4 py-8 text-center text-[#ababab]">No stock items yet. Click "Add Stock".</td></tr>
-            ) : stockItems.map((item) => (
+            ) : filteredItems.length === 0 ? (
+              <tr><td colSpan="5" className="px-4 py-8 text-center text-[#ababab]">No stock items match.</td></tr>
+            ) : filteredItems.map((item) => (
               <tr key={item.id} className="border-b border-[#383838] hover:bg-[#2a2a2a]">
                 <td className="px-4 py-3 text-[#f5f5f5]">{item.name}</td>
                 <td className={`px-4 py-3 font-semibold ${item.quantity <= item.minLevel ? "text-red-400" : "text-green-400"}`}>

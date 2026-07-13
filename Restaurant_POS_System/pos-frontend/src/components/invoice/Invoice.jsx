@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { FaCheck } from "react-icons/fa6";
+import { FaPrint } from "react-icons/fa";
 import { getShop } from "../../https";
 
 const Invoice = ({ orderInfo, setShowInvoice }) => {
@@ -169,16 +170,16 @@ const Invoice = ({ orderInfo, setShowInvoice }) => {
         </div>
 
         {/* Buttons */}
-        <div className="flex justify-between mt-4">
+        <div className="flex items-center gap-3 mt-4">
           <button
             onClick={handlePrint}
-            className="text-blue-500 hover:underline text-xs px-4 py-2 rounded-lg"
+            className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg"
           >
-            Print Receipt
+            <FaPrint size={16} /> Print Invoice
           </button>
           <button
             onClick={() => setShowInvoice(false)}
-            className="text-red-500 hover:underline text-xs px-4 py-2 rounded-lg"
+            className="px-5 py-2.5 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold"
           >
             Close
           </button>

@@ -5,7 +5,7 @@ import Invoice from "../components/invoice/Invoice";
 import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getOrders, updateOrderStatus } from "../https/index";
 import { enqueueSnackbar } from "notistack";
-import { formatDateAndTime, parseJSON } from "../utils";
+import { formatDateAndTime, parseJSON, printReport } from "../utils";
 import { FaPrint } from "react-icons/fa";
 
 const STATUS_OPTIONS = ["In Progress", "Ready", "Delivered", "Completed"];
@@ -27,6 +27,7 @@ const statusBadge = (status) => {
 
 const Orders = () => {
   const [status, setStatus] = useState("all");
+  const [search, setSearch] = useState("");
   const [printOrder, setPrintOrder] = useState(null);
   const [showInvoice, setShowInvoice] = useState(false);
   const queryClient = useQueryClient();
@@ -59,13 +60,69 @@ const Orders = () => {
   const orders = resData?.data?.data || [];
 
   const filtered = orders.filter((o) => {
-    if (status === "all") return true;
-    if (status === "progress") return o.orderStatus === "In Progress";
-    if (status === "ready") return o.orderStatus === "Ready";
-    if (status === "completed")
-      return o.orderStatus === "Completed" || o.orderStatus === "Delivered";
-    return true;
+    const statusMatch =
+      status === "all" ||
+      (status === "progress" && o.orderStatus === "In Progress") ||
+      (status === "ready" && o.orderStatus === "Ready") ||
+      (status === "completed" &&
+        (o.orderStatus === "Completed" || o.orderStatus === "Delivered"));
+    if (!statusMatch) return false;
+    if (!search) return true;
+    const customer = parseJSON(o.customerDetails, {});
+    const q = search.toLowerCase();
+    return (
+      (customer.name || "").toLowerCase().includes(q) ||
+      (customer.phone || "").toLowerCase().includes(q) ||
+      String(o.id).includes(q)
+    );
   });
+
+  const handlePrintReport = () => {
+    const shopName = (() => {
+      try {
+        return JSON.parse(localStorage.getItem("shopSession"))?.name || "Orders";
+      } catch {
+        return "Orders";
+      }
+    })();
+
+    let revenue = 0;
+    const rows = filtered
+      .map((o) => {
+        const customer = parseJSON(o.customerDetails, {});
+        const bills = parseJSON(o.bills, {});
+        const items = parseJSON(o.items, []);
+        const total = Number(bills.totalWithTax ?? bills.total ?? 0);
+        revenue += total;
+        return `
+        <tr>
+          <td>#${o.id}</td>
+          <td>${customer.name || "Walk-in Customer"}</td>
+          <td>${customer.phone || "-"}</td>
+          <td>${o.tableNo ?? o.tableId ?? "-"}</td>
+          <td class="center">${items.length}</td>
+          <td class="right">PKR ${total.toFixed(2)}</td>
+          <td>${o.paymentMethod || "Cash"}</td>
+          <td>${formatDateAndTime(o.orderDate)}</td>
+          <td>${o.orderStatus}</td>
+        </tr>`;
+      })
+      .join("");
+
+    const table = `
+      <table>
+        <thead>
+          <tr><th>Order #</th><th>Customer</th><th>Phone</th><th>Table</th><th class="center">Items</th><th class="right">Total</th><th>Payment</th><th>Date</th><th>Status</th></tr>
+        </thead>
+        <tbody>${rows || '<tr><td colspan="9" class="center">No orders</td></tr>'}</tbody>
+        <tfoot>
+          <tr><td colspan="5">Total orders: ${filtered.length}</td><td class="right">PKR ${revenue.toFixed(2)}</td><td colspan="3"></td></tr>
+        </tfoot>
+      </table>`;
+
+    const label = status === "all" ? "All" : status.charAt(0).toUpperCase() + status.slice(1);
+    printReport(`${shopName} — Orders Report`, `Filter: ${label}${search ? ` · Search: "${search}"` : ""}`, table);
+  };
 
   const handlePrint = (order) => {
     setPrintOrder({
@@ -92,7 +149,14 @@ const Orders = () => {
           <BackButton />
           <h1 className="text-[#f5f5f5] text-2xl font-bold tracking-wider">Orders</h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search name / phone / #"
+            className="bg-[#2a2a2a] text-white px-4 py-2 rounded-lg focus:outline-none border border-[#383838] focus:border-yellow-500 text-sm w-56"
+          />
           {filters.map((f) => (
             <button
               key={f.key}
@@ -104,6 +168,12 @@ const Orders = () => {
               {f.label}
             </button>
           ))}
+          <button
+            onClick={handlePrintReport}
+            className="flex items-center gap-2 bg-[#2e4a40] text-[#02ca3a] px-4 py-2 rounded-lg font-semibold hover:bg-[#345c4d] text-sm"
+          >
+            <FaPrint size={14} /> Print Report
+          </button>
         </div>
       </div>
 
