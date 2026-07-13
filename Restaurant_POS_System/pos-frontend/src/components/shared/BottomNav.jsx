@@ -14,7 +14,6 @@ import { getCustomers, addCustomer } from "../../https";
 // admin: true renders in the yellow "ADMIN ONLY" group.
 const MORE_MENU_ITEMS = [
   { label: "🚚 Delivery Orders", route: "/delivery", roles: ["Admin"] },
-  { label: "📈 Dashboard", route: "/dashboard", roles: ["Admin"] },
   { label: "🍽️ Menu", route: "/menu", roles: ["Admin"] },
   { label: "💸 Expenses", route: "/expenses", roles: ["Admin", "Manager", "Cashier"] },
   { label: "📊 Financial Report", route: "/financial", roles: ["Admin", "Manager"] },

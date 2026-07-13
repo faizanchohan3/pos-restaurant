@@ -13,7 +13,7 @@ const Stock = () => {
   const [stockItems, setStockItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [formData, setFormData] = useState({ name: "", quantity: "", unit: "kg", minLevel: "" });
+  const [formData, setFormData] = useState({ name: "", quantity: "", unit: "kg", minLevel: "", price: "" });
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all"); // all | low | ok
 
@@ -51,6 +51,7 @@ const Stock = () => {
           quantity: parseFloat(formData.quantity),
           unit: formData.unit,
           minLevel: parseFloat(formData.minLevel),
+          price: parseFloat(formData.price) || 0,
           shopId: parseInt(shopId),
         }),
       });
@@ -58,7 +59,7 @@ const Stock = () => {
       if (data.success) {
         enqueueSnackbar("Stock item added!", { variant: "success" });
         fetchStock();
-        setFormData({ name: "", quantity: "", unit: "kg", minLevel: "" });
+        setFormData({ name: "", quantity: "", unit: "kg", minLevel: "", price: "" });
         setShowAddModal(false);
       } else {
         enqueueSnackbar(data.message || "Failed to add", { variant: "error" });
@@ -109,6 +110,11 @@ const Stock = () => {
     return matchesSearch && matchesFilter;
   });
 
+  const totalInventoryValue = filteredItems.reduce(
+    (sum, i) => sum + (i.quantity || 0) * (i.price || 0),
+    0
+  );
+
   const handlePrint = () => {
     const shopName = (() => {
       try {
@@ -119,26 +125,29 @@ const Stock = () => {
     })();
 
     const rows = filteredItems
-      .map(
-        (item) => `
+      .map((item) => {
+        const value = (item.quantity || 0) * (item.price || 0);
+        return `
         <tr>
           <td>${item.name}</td>
           <td class="right">${item.quantity}</td>
           <td>${item.unit}</td>
           <td class="right">${item.minLevel}</td>
+          <td class="right">PKR ${(item.price || 0).toFixed(2)}</td>
+          <td class="right">PKR ${value.toFixed(2)}</td>
           <td>${item.quantity <= item.minLevel ? "LOW STOCK" : "OK"}</td>
-        </tr>`
-      )
+        </tr>`;
+      })
       .join("");
 
     const table = `
       <table>
         <thead>
-          <tr><th>Item Name</th><th class="right">Quantity</th><th>Unit</th><th class="right">Min Level</th><th>Status</th></tr>
+          <tr><th>Item Name</th><th class="right">Quantity</th><th>Unit</th><th class="right">Min Level</th><th class="right">Unit Price</th><th class="right">Value</th><th>Status</th></tr>
         </thead>
-        <tbody>${rows || '<tr><td colspan="5" class="center">No items</td></tr>'}</tbody>
+        <tbody>${rows || '<tr><td colspan="7" class="center">No items</td></tr>'}</tbody>
         <tfoot>
-          <tr><td colspan="5">Total items: ${filteredItems.length} &nbsp; | &nbsp; Low stock: ${filteredItems.filter((i) => i.quantity <= i.minLevel).length}</td></tr>
+          <tr><td colspan="5">Total items: ${filteredItems.length} &nbsp; | &nbsp; Low stock: ${filteredItems.filter((i) => i.quantity <= i.minLevel).length}</td><td class="right">PKR ${totalInventoryValue.toFixed(2)}</td><td></td></tr>
         </tfoot>
       </table>`;
 
@@ -215,14 +224,16 @@ const Stock = () => {
               <th className="px-4 py-3 text-[#f5f5f5]">Quantity</th>
               <th className="px-4 py-3 text-[#f5f5f5]">Unit</th>
               <th className="px-4 py-3 text-[#f5f5f5]">Min Level</th>
+              <th className="px-4 py-3 text-[#f5f5f5]">Unit Price</th>
+              <th className="px-4 py-3 text-[#f5f5f5]">Value</th>
               <th className="px-4 py-3 text-[#f5f5f5]">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan="5" className="px-4 py-8 text-center text-[#ababab]">Loading...</td></tr>
+              <tr><td colSpan="7" className="px-4 py-8 text-center text-[#ababab]">Loading...</td></tr>
             ) : filteredItems.length === 0 ? (
-              <tr><td colSpan="5" className="px-4 py-8 text-center text-[#ababab]">No stock items match.</td></tr>
+              <tr><td colSpan="7" className="px-4 py-8 text-center text-[#ababab]">No stock items match.</td></tr>
             ) : filteredItems.map((item) => (
               <tr key={item.id} className="border-b border-[#383838] hover:bg-[#2a2a2a]">
                 <td className="px-4 py-3 text-[#f5f5f5]">{item.name}</td>
@@ -231,6 +242,8 @@ const Stock = () => {
                 </td>
                 <td className="px-4 py-3">{item.unit}</td>
                 <td className="px-4 py-3">{item.minLevel}</td>
+                <td className="px-4 py-3">PKR {(item.price || 0).toFixed(2)}</td>
+                <td className="px-4 py-3 text-[#f5f5f5]">PKR {((item.quantity || 0) * (item.price || 0)).toFixed(2)}</td>
                 <td className="px-4 py-3 flex gap-2">
                   <button
                     onClick={() => handleUpdateQuantity(item, -5)}
@@ -306,6 +319,16 @@ const Stock = () => {
                   value={formData.minLevel}
                   onChange={(e) => setFormData({...formData, minLevel: e.target.value})}
                   placeholder="Enter minimum level"
+                  className="w-full bg-[#1f1f1f] text-white px-4 py-2 rounded-lg focus:outline-none border border-[#383838]"
+                />
+              </div>
+              <div className="mb-4">
+                <label className="text-[#ababab] text-sm mb-2 block">Unit Price (PKR)</label>
+                <input
+                  type="number"
+                  value={formData.price}
+                  onChange={(e) => setFormData({...formData, price: e.target.value})}
+                  placeholder="Cost per unit"
                   className="w-full bg-[#1f1f1f] text-white px-4 py-2 rounded-lg focus:outline-none border border-[#383838]"
                 />
               </div>

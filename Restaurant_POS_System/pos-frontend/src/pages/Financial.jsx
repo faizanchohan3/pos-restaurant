@@ -20,6 +20,7 @@ const Financial = () => {
   const [orderRevenue, setOrderRevenue] = useState(0);
   const [deliveryRevenue, setDeliveryRevenue] = useState(0);
   const [expenses, setExpenses] = useState([]); // [{ category, amount }]
+  const [stockValue, setStockValue] = useState(0);
 
   useEffect(() => {
     document.title = "POS | Financial Report";
@@ -44,15 +45,22 @@ const Financial = () => {
           }
         };
 
-        const [orders, deliveries, expenseRows] = await Promise.all([
+        const [orders, deliveries, expenseRows, stockRows] = await Promise.all([
           safeGet("/api/order?"),
           safeGet("/api/delivery?"),
           safeGet("/api/expenses?"),
+          safeGet("/api/stock?"),
         ]);
 
         setOrderRevenue(orders.reduce((sum, o) => sum + billAmount(o.bills), 0));
         setDeliveryRevenue(
           deliveries.reduce((sum, d) => sum + (parseFloat(d.total) || 0), 0)
+        );
+        setStockValue(
+          stockRows.reduce(
+            (sum, s) => sum + (parseFloat(s.quantity) || 0) * (parseFloat(s.price) || 0),
+            0
+          )
         );
 
         // Group expenses by category
@@ -204,7 +212,7 @@ const Financial = () => {
             </div>
 
             {/* Summary Metrics */}
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <div className="bg-[#2a2a2a] rounded-lg p-4 border border-[#383838]">
                 <p className="text-[#ababab] text-sm mb-2">Revenue</p>
                 <p className="text-yellow-400 text-2xl font-bold">
@@ -232,6 +240,10 @@ const Financial = () => {
                 <p className="text-blue-400 text-2xl font-bold">
                   {profitMargin}%
                 </p>
+              </div>
+              <div className="bg-[#2a2a2a] rounded-lg p-4 border border-[#383838]">
+                <p className="text-[#ababab] text-sm mb-2">Stock Value</p>
+                <p className="text-pink-400 text-2xl font-bold">{fmt(stockValue)}</p>
               </div>
             </div>
           </>

@@ -109,9 +109,16 @@ const Invoice = ({ orderInfo, setShowInvoice }) => {
             <p>
               <strong>Phone:</strong> {customer.phone || "-"}
             </p>
-            <p>
-              <strong>Guests:</strong> {customer.guests ?? 0}
-            </p>
+            {customer.address && (
+              <p>
+                <strong>Address:</strong> {customer.address}
+              </p>
+            )}
+            {customer.address ? null : (
+              <p>
+                <strong>Guests:</strong> {customer.guests ?? 0}
+              </p>
+            )}
           </div>
 
           {/* Items Summary */}

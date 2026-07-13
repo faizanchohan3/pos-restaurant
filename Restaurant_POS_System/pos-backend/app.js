@@ -980,13 +980,13 @@ app.get("/api/stock", async (req, res) => {
 app.post("/api/stock", async (req, res) => {
   try {
     if (!db) return res.status(503).json({ success: false, message: "Database not connected" });
-    const { name, quantity, unit, minLevel, shopId } = req.body;
+    const { name, quantity, unit, minLevel, price, shopId } = req.body;
     if (!name || !shopId) {
       return res.status(400).json({ success: false, message: "Name and shop ID are required" });
     }
     const result = await db.query(
-      'INSERT INTO "Stock" (name, quantity, unit, "minLevel", "shopId", "createdAt") VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING *',
-      [name, quantity || 0, unit || 'kg', minLevel || 0, parseInt(shopId)]
+      'INSERT INTO "Stock" (name, quantity, unit, "minLevel", price, "shopId", "createdAt") VALUES ($1, $2, $3, $4, $5, $6, NOW()) RETURNING *',
+      [name, quantity || 0, unit || 'kg', minLevel || 0, price || 0, parseInt(shopId)]
     );
     res.status(201).json({ success: true, message: "Stock item added!", data: result.rows[0] });
   } catch (error) {
@@ -998,10 +998,10 @@ app.post("/api/stock", async (req, res) => {
 app.put("/api/stock/:id", async (req, res) => {
   try {
     if (!db) return res.status(503).json({ success: false, message: "Database not connected" });
-    const { name, quantity, unit, minLevel } = req.body;
+    const { name, quantity, unit, minLevel, price } = req.body;
     const result = await db.query(
-      'UPDATE "Stock" SET name = COALESCE($1, name), quantity = COALESCE($2, quantity), unit = COALESCE($3, unit), "minLevel" = COALESCE($4, "minLevel") WHERE id = $5 RETURNING *',
-      [name || null, quantity ?? null, unit || null, minLevel ?? null, parseInt(req.params.id)]
+      'UPDATE "Stock" SET name = COALESCE($1, name), quantity = COALESCE($2, quantity), unit = COALESCE($3, unit), "minLevel" = COALESCE($4, "minLevel"), price = COALESCE($5, price) WHERE id = $6 RETURNING *',
+      [name || null, quantity ?? null, unit || null, minLevel ?? null, price ?? null, parseInt(req.params.id)]
     );
     if (result.rows.length === 0) return res.status(404).json({ success: false, message: "Stock item not found" });
     res.status(200).json({ success: true, message: "Stock updated!", data: result.rows[0] });
@@ -1046,13 +1046,13 @@ app.get("/api/delivery", async (req, res) => {
 app.post("/api/delivery", async (req, res) => {
   try {
     if (!db) return res.status(503).json({ success: false, message: "Database not connected" });
-    const { customerName, phone, address, items, total, status, shopId } = req.body;
+    const { customerName, phone, address, items, itemsData, total, status, shopId } = req.body;
     if (!customerName || !shopId) {
       return res.status(400).json({ success: false, message: "Customer name and shop ID are required" });
     }
     const result = await db.query(
-      'INSERT INTO "Delivery" ("customerName", phone, address, items, total, status, "shopId", "createdAt") VALUES ($1, $2, $3, $4, $5, $6, $7, NOW()) RETURNING *',
-      [customerName, phone || '', address || '', items || 0, total || 0, status || 'Pending', parseInt(shopId)]
+      'INSERT INTO "Delivery" ("customerName", phone, address, items, "itemsData", total, status, "shopId", "createdAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW()) RETURNING *',
+      [customerName, phone || '', address || '', items || 0, itemsData || '', total || 0, status || 'Pending', parseInt(shopId)]
     );
     res.status(201).json({ success: true, message: "Delivery added!", data: result.rows[0] });
   } catch (error) {

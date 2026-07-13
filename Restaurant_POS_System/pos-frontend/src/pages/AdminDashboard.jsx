@@ -16,6 +16,7 @@ const AdminDashboard = () => {
     activeOrders: 0,
     totalProducts: 0,
     todayRevenue: 0,
+    totalTables: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -89,11 +90,24 @@ const AdminDashboard = () => {
         console.log("Orders endpoint not fully available");
       }
 
+      // Fetch tables for this shop
+      let totalTables = 0;
+      try {
+        const tablesRes = await fetch(`${API_BASE_URL}/api/table?shopId=${shopId}`);
+        if (tablesRes.ok) {
+          const tablesData = await tablesRes.json();
+          totalTables = tablesData.success ? tablesData.data.length : 0;
+        }
+      } catch (e) {
+        console.log("Tables endpoint not available");
+      }
+
       setStats({
         totalStaff,
         activeOrders,
         totalProducts,
         todayRevenue,
+        totalTables,
       });
     } catch (error) {
       console.error("Error fetching dashboard stats:", error);
@@ -191,7 +205,7 @@ const AdminDashboard = () => {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-12">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-6 mt-12">
           <div className="bg-[#2a2a2a] border border-[#383838] rounded-lg p-6">
             <p className="text-[#ababab] text-sm mb-2">Total Staff</p>
             <p className="text-3xl font-bold text-blue-400">
@@ -214,6 +228,12 @@ const AdminDashboard = () => {
             <p className="text-[#ababab] text-sm mb-2">Today's Revenue</p>
             <p className="text-3xl font-bold text-yellow-400">
               {loading ? "..." : `PKR ${stats.todayRevenue.toLocaleString()}`}
+            </p>
+          </div>
+          <div className="bg-[#2a2a2a] border border-[#383838] rounded-lg p-6">
+            <p className="text-[#ababab] text-sm mb-2">Total Tables</p>
+            <p className="text-3xl font-bold text-pink-400">
+              {loading ? "..." : stats.totalTables}
             </p>
           </div>
         </div>
