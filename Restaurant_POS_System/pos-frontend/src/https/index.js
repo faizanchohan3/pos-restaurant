@@ -27,6 +27,8 @@ export const getOrders = (shopId) =>
   axiosWrapper.get(shopId ? `/api/order?shopId=${shopId}` : "/api/order");
 export const updateOrderStatus = ({ orderId, orderStatus }) =>
   axiosWrapper.put(`/api/order/${orderId}`, { orderStatus });
+export const updateOrder = ({ orderId, ...data }) =>
+  axiosWrapper.put(`/api/order/${orderId}`, data);
 
 // Staff Endpoints
 export const createStaff = (data) => axiosWrapper.post("/api/staff", data);
@@ -49,6 +51,7 @@ export const getLedger = (shopId, customerId) =>
     `/api/ledger?shopId=${shopId}${customerId ? `&customerId=${customerId}` : ""}`
   );
 export const addLedgerEntry = (data) => axiosWrapper.post("/api/ledger", data);
+export const updateLedgerEntry = ({ id, ...data }) => axiosWrapper.put(`/api/ledger/${id}`, data);
 export const deleteLedgerEntry = (id) => axiosWrapper.delete(`/api/ledger/${id}`);
 
 // Shop Management Endpoints

@@ -3,7 +3,16 @@ import BottomNav from "../components/shared/BottomNav";
 import BackButton from "../components/shared/BackButton";
 import Invoice from "../components/invoice/Invoice";
 import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getOrders, updateOrderStatus } from "../https/index";
+import {
+  getOrders,
+  updateOrderStatus,
+  updateOrder,
+  getCustomers,
+  getLedger,
+  addLedgerEntry,
+  updateLedgerEntry,
+  deleteLedgerEntry,
+} from "../https/index";
 import { enqueueSnackbar } from "notistack";
 import { formatDateAndTime, parseJSON, printReport } from "../utils";
 import { FaPrint } from "react-icons/fa";
@@ -30,19 +39,104 @@ const Orders = () => {
   const [search, setSearch] = useState("");
   const [printOrder, setPrintOrder] = useState(null);
   const [showInvoice, setShowInvoice] = useState(false);
+  const [customers, setCustomers] = useState([]);
+  const [ledger, setLedger] = useState([]);
   const queryClient = useQueryClient();
+
+  const shopId = localStorage.getItem("selectedShop");
 
   useEffect(() => {
     document.title = "POS | Orders";
+    loadAux();
   }, []);
 
-  const shopId = localStorage.getItem("selectedShop");
+  const loadAux = async () => {
+    if (!shopId) return;
+    try {
+      const [c, l] = await Promise.all([getCustomers(shopId), getLedger(shopId)]);
+      if (c.data.success) setCustomers(c.data.data);
+      if (l.data.success) setLedger(l.data.data);
+    } catch {
+      // ignore
+    }
+  };
 
   const { data: resData, isError } = useQuery({
     queryKey: ["orders", shopId],
     queryFn: async () => getOrders(shopId),
     placeholderData: keepPreviousData,
   });
+
+  const ledgerFor = (orderId) => ledger.filter((e) => String(e.orderId) === String(orderId));
+
+  const orderTotal = (order) => {
+    const bills = parseJSON(order.bills, {});
+    return Number(bills.totalWithTax ?? bills.total ?? 0);
+  };
+
+  // Toggle an order between paid and unpaid (udhar), reconciling the ledger.
+  const setPayment = async (order, newStatus) => {
+    try {
+      await updateOrder({ orderId: order.id, paymentStatus: newStatus });
+      const customer = parseJSON(order.customerDetails, {});
+      const entries = ledgerFor(order.id);
+      const debit = entries.find((e) => e.type === "debit");
+      const credit = entries.find((e) => e.type === "credit");
+      const total = orderTotal(order);
+
+      if (newStatus === "unpaid") {
+        if (credit) await deleteLedgerEntry(credit.id);
+        if (!debit) {
+          await addLedgerEntry({
+            shopId: parseInt(shopId),
+            customerId: customer.customerId || null,
+            customerName: customer.name || "Walk-in Customer",
+            type: "debit",
+            amount: total,
+            description: `Order #${order.id} (unpaid)`,
+            orderId: order.id,
+          });
+        }
+      } else {
+        // paid -> settle any outstanding debit with a credit
+        if (debit && !credit) {
+          await addLedgerEntry({
+            shopId: parseInt(shopId),
+            customerId: customer.customerId || debit.customerId || null,
+            customerName: customer.name || debit.customerName || "Walk-in Customer",
+            type: "credit",
+            amount: debit.amount,
+            description: `Order #${order.id} payment`,
+            orderId: order.id,
+          });
+        }
+      }
+      enqueueSnackbar(newStatus === "paid" ? "Marked as Paid" : "Marked as Udhar (unpaid)", { variant: "success" });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      loadAux();
+    } catch {
+      enqueueSnackbar("Failed to update payment", { variant: "error" });
+    }
+  };
+
+  // Assign a registered customer to an order (also updates its ledger entries).
+  const assignCustomer = async (order, customerId) => {
+    const c = customers.find((x) => String(x.id) === String(customerId));
+    if (!c) return;
+    try {
+      const existing = parseJSON(order.customerDetails, {});
+      const details = { ...existing, name: c.name, phone: c.phone || "", customerId: c.id };
+      await updateOrder({ orderId: order.id, customerDetails: JSON.stringify(details) });
+      for (const e of ledgerFor(order.id)) {
+        await updateLedgerEntry({ id: e.id, customerId: c.id, customerName: c.name });
+      }
+      enqueueSnackbar(`Assigned to ${c.name}`, { variant: "success" });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      loadAux();
+    } catch {
+      enqueueSnackbar("Failed to assign customer", { variant: "error" });
+    }
+  };
 
   const updateMutation = useMutation({
     mutationFn: ({ orderId, orderStatus }) => updateOrderStatus({ orderId, orderStatus }),
@@ -189,6 +283,7 @@ const Orders = () => {
                 <th className="p-3 border-b border-[#383838] text-center">Items</th>
                 <th className="p-3 border-b border-[#383838] text-right">Total</th>
                 <th className="p-3 border-b border-[#383838]">Payment</th>
+                <th className="p-3 border-b border-[#383838]">Paid?</th>
                 <th className="p-3 border-b border-[#383838]">Date</th>
                 <th className="p-3 border-b border-[#383838]">Status</th>
                 <th className="p-3 border-b border-[#383838] text-center">Actions</th>
@@ -197,7 +292,7 @@ const Orders = () => {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="p-6 text-center text-[#ababab]">
+                  <td colSpan={11} className="p-6 text-center text-[#ababab]">
                     No orders available
                   </td>
                 </tr>
@@ -215,7 +310,19 @@ const Orders = () => {
                     >
                       <td className="p-3 border-b border-[#333]">#{order.id}</td>
                       <td className="p-3 border-b border-[#333]">
-                        {customer.name || "Walk-in Customer"}
+                        <div className="flex flex-col gap-1">
+                          <span>{customer.name || "Walk-in Customer"}</span>
+                          <select
+                            value={customer.customerId || ""}
+                            onChange={(e) => assignCustomer(order, e.target.value)}
+                            className="bg-[#1f1f1f] text-[#ababab] text-xs rounded px-1 py-0.5 border border-[#383838] focus:outline-none max-w-[140px]"
+                          >
+                            <option value="">↪ assign customer…</option>
+                            {customers.map((c) => (
+                              <option key={c.id} value={c.id}>{c.name}</option>
+                            ))}
+                          </select>
+                        </div>
                       </td>
                       <td className="p-3 border-b border-[#333] text-[#ababab]">
                         {customer.phone || "-"}
@@ -227,6 +334,20 @@ const Orders = () => {
                       </td>
                       <td className="p-3 border-b border-[#333] text-[#ababab]">
                         {order.paymentMethod || "Cash"}
+                      </td>
+                      <td className="p-3 border-b border-[#333]">
+                        <select
+                          value={order.paymentStatus === "unpaid" ? "unpaid" : "paid"}
+                          onChange={(e) => setPayment(order, e.target.value)}
+                          className={`px-2 py-1 rounded-md text-xs font-semibold focus:outline-none ${
+                            order.paymentStatus === "unpaid"
+                              ? "text-red-400 bg-[#4a2020]"
+                              : "text-green-400 bg-[#1f3d2b]"
+                          }`}
+                        >
+                          <option value="paid" className="bg-[#1f1f1f] text-white">Paid</option>
+                          <option value="unpaid" className="bg-[#1f1f1f] text-white">Udhar</option>
+                        </select>
                       </td>
                       <td className="p-3 border-b border-[#333] text-[#ababab] whitespace-nowrap">
                         {formatDateAndTime(order.orderDate)}

@@ -607,15 +607,15 @@ app.post("/api/order", async (req, res) => {
       return res.status(503).json({ success: false, message: "Database not connected" });
     }
 
-    const { customerDetails, orderStatus, bills, items, tableId, shopId, paymentMethod, paymentData } = req.body;
+    const { customerDetails, orderStatus, bills, items, tableId, shopId, paymentMethod, paymentData, paymentStatus } = req.body;
 
     if (!shopId) {
       return res.status(400).json({ success: false, message: "Shop ID is required" });
     }
 
     const result = await db.query(
-      'INSERT INTO "Order" ("customerDetails", "orderStatus", bills, items, "tableId", "shopId", "paymentMethod", "paymentData", "orderDate", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW(), NOW()) RETURNING *',
-      [customerDetails || '', orderStatus || 'pending', bills || '', items || '', tableId || null, shopId, paymentMethod || '', paymentData || '']
+      'INSERT INTO "Order" ("customerDetails", "orderStatus", bills, items, "tableId", "shopId", "paymentMethod", "paymentData", "paymentStatus", "orderDate", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW(), NOW()) RETURNING *',
+      [customerDetails || '', orderStatus || 'pending', bills || '', items || '', tableId || null, shopId, paymentMethod || '', paymentData || '', paymentStatus || 'paid']
     );
 
     res.status(201).json({ success: true, message: "Order created!", data: result.rows[0] });
@@ -656,12 +656,12 @@ app.put("/api/order/:id", async (req, res) => {
       return res.status(503).json({ success: false, message: "Database not connected" });
     }
 
-    const { orderStatus } = req.body;
+    const { orderStatus, paymentStatus, customerDetails } = req.body;
     const orderId = parseInt(req.params.id);
 
     const result = await db.query(
-      'UPDATE "Order" SET "orderStatus" = COALESCE($1, "orderStatus"), "updatedAt" = NOW() WHERE id = $2 RETURNING *',
-      [orderStatus || null, orderId]
+      'UPDATE "Order" SET "orderStatus" = COALESCE($1, "orderStatus"), "paymentStatus" = COALESCE($2, "paymentStatus"), "customerDetails" = COALESCE($3, "customerDetails"), "updatedAt" = NOW() WHERE id = $4 RETURNING *',
+      [orderStatus || null, paymentStatus || null, customerDetails || null, orderId]
     );
 
     if (result.rows.length === 0) {
@@ -1201,6 +1201,22 @@ app.post("/api/ledger", async (req, res) => {
     res.status(201).json({ success: true, message: "Ledger entry added!", data: result.rows[0] });
   } catch (error) {
     console.error("Error creating ledger entry:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.put("/api/ledger/:id", async (req, res) => {
+  try {
+    if (!db) return res.status(503).json({ success: false, message: "Database not connected" });
+    const { customerId, customerName, type, amount, description } = req.body;
+    const result = await db.query(
+      'UPDATE "Ledger" SET "customerId" = COALESCE($1, "customerId"), "customerName" = COALESCE($2, "customerName"), type = COALESCE($3, type), amount = COALESCE($4, amount), description = COALESCE($5, description) WHERE id = $6 RETURNING *',
+      [customerId ? parseInt(customerId) : null, customerName || null, type || null, amount ?? null, description || null, parseInt(req.params.id)]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ success: false, message: "Entry not found" });
+    res.status(200).json({ success: true, message: "Ledger entry updated!", data: result.rows[0] });
+  } catch (error) {
+    console.error("Error updating ledger entry:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 });

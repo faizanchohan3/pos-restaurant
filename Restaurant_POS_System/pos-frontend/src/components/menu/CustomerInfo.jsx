@@ -90,16 +90,16 @@ const CustomerInfo = () => {
       <select
         value={selectedId}
         onChange={(e) => handleSelect(e.target.value)}
-        className="w-full bg-[#1f1f1f] text-white px-3 py-2 rounded-lg focus:outline-none border border-[#383838] text-sm"
+        className="w-full bg-white text-gray-900 px-3 py-2 rounded-lg focus:outline-none border border-[#383838] text-sm"
       >
-        <option value="walkin">🚶 Walk-in Customer</option>
+        <option value="walkin" className="bg-white text-gray-900">🚶 Walk-in Customer</option>
         {customers.map((c) => (
-          <option key={c.id} value={c.id}>
+          <option key={c.id} value={c.id} className="bg-white text-gray-900">
             {c.name}
             {c.phone ? ` — ${c.phone}` : ""}
           </option>
         ))}
-        <option value="new">➕ Add new customer…</option>
+        <option value="new" className="bg-white text-gray-900">➕ Add new customer…</option>
       </select>
 
       {selectedId === "new" && (

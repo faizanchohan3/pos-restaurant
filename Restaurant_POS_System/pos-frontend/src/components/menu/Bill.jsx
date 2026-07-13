@@ -92,6 +92,7 @@ const Bill = () => {
                 name: customerData.customerName,
                 phone: customerData.customerPhone,
                 guests: customerData.guests,
+                customerId: customerData.customerId || null,
               },
               orderStatus: "In Progress",
               bills: {
@@ -104,6 +105,7 @@ const Bill = () => {
               tableId: customerData.table.tableId,
               shopId: parseInt(localStorage.getItem("selectedShop")),
               paymentMethod: paymentMethod,
+              paymentStatus: "paid",
               paymentData: {
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
@@ -137,6 +139,7 @@ const Bill = () => {
           name: customerData.customerName,
           phone: customerData.customerPhone,
           guests: customerData.guests,
+          customerId: customerData.customerId || null,
         },
         orderStatus: "In Progress",
         bills: {
@@ -149,6 +152,7 @@ const Bill = () => {
         tableId: customerData.table.tableId,
         shopId: parseInt(localStorage.getItem("selectedShop")),
         paymentMethod: paymentMethod,
+        paymentStatus: paymentMethod === "Pay Later" ? "unpaid" : "paid",
       };
       if (!orderData.shopId) {
         enqueueSnackbar("No shop selected. Please log in again.", { variant: "error" });
