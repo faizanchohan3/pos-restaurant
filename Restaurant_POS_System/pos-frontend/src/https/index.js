@@ -34,6 +34,15 @@ export const getStaffByShop = (shopId) => axiosWrapper.get(`/api/staff/shop/${sh
 export const updateStaff = ({ staffId, ...data }) => axiosWrapper.put(`/api/staff/${staffId}`, data);
 export const deleteStaff = (staffId) => axiosWrapper.delete(`/api/staff/${staffId}`);
 
+// Customer Endpoints
+export const getCustomers = (shopId) =>
+  axiosWrapper.get(shopId ? `/api/customers?shopId=${shopId}` : "/api/customers");
+export const addCustomer = (data) => axiosWrapper.post("/api/customers", data);
+export const updateCustomer = ({ customerId, ...data }) =>
+  axiosWrapper.put(`/api/customers/${customerId}`, data);
+export const deleteCustomer = (customerId) =>
+  axiosWrapper.delete(`/api/customers/${customerId}`);
+
 // Shop Management Endpoints
 export const createShop = (data) => axiosWrapper.post("/api/shop/register", data);
 export const getAllShops = () => axiosWrapper.get("/api/shop");

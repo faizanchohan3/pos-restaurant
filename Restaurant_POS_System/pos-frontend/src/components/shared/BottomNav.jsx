@@ -1,12 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FaHome } from "react-icons/fa";
 import { MdOutlineReorder, MdTableBar } from "react-icons/md";
 import { CiCircleMore } from "react-icons/ci";
 import { BiSolidDish } from "react-icons/bi";
 import { useNavigate, useLocation } from "react-router-dom";
+import { enqueueSnackbar } from "notistack";
 import Modal from "./Modal";
 import { useDispatch, useSelector } from "react-redux";
 import { setCustomer } from "../../redux/slices/customerSlice";
+import { getCustomers, addCustomer } from "../../https";
 
 // Items shown in the "More" menu, gated by role.
 // admin: true renders in the yellow "ADMIN ONLY" group.
@@ -20,6 +22,7 @@ const MORE_MENU_ITEMS = [
   { label: "📂 Categories", route: "/categories", roles: ["Admin"], admin: true },
   { label: "📦 Stock Management", route: "/stock", roles: ["Admin"], admin: true },
   { label: "👥 Manage Staff", route: "/staff-management", roles: ["Admin"], admin: true },
+  { label: "👤 Customers", route: "/customers", roles: ["Admin"], admin: true },
   { label: "🏪 Shop Management", route: "/shop-management", roles: ["Admin"], admin: true },
 ];
 
@@ -31,11 +34,32 @@ const BottomNav = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [guestCount, setGuestCount] = useState(0);
-  const [name, setName] = useState();
-  const [phone, setPhone] = useState();
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [customers, setCustomers] = useState([]);
+  // "walkin" | "new" | <customer id>
+  const [selectedCustomerId, setSelectedCustomerId] = useState("walkin");
 
-  const openModal = () => setIsModalOpen(true);
+  const openModal = () => {
+    setSelectedCustomerId("walkin");
+    setName("");
+    setPhone("");
+    setGuestCount(0);
+    setIsModalOpen(true);
+  };
   const closeModal = () => setIsModalOpen(false);
+
+  // Load this shop's customers whenever the order modal opens
+  useEffect(() => {
+    if (!isModalOpen) return;
+    const shopId = localStorage.getItem("selectedShop");
+    if (!shopId) return;
+    getCustomers(shopId)
+      .then((res) => {
+        if (res.data.success) setCustomers(res.data.data);
+      })
+      .catch(() => {});
+  }, [isModalOpen]);
 
   const increment = () => {
     if(guestCount >= 6) return;
@@ -48,11 +72,41 @@ const BottomNav = () => {
 
   const isActive = (path) => location.pathname === path;
 
-  const handleCreateOrder = () => {
-    // send the data to store
-    dispatch(setCustomer({name, phone, guests: guestCount}));
+  const handleCreateOrder = async () => {
+    const shopId = localStorage.getItem("selectedShop");
+    let custName = "Walk-in Customer";
+    let custPhone = "";
+
+    if (selectedCustomerId === "walkin") {
+      custName = name.trim() || "Walk-in Customer";
+      custPhone = phone || "";
+    } else if (selectedCustomerId === "new") {
+      if (!name.trim()) {
+        enqueueSnackbar("Enter the new customer's name", { variant: "warning" });
+        return;
+      }
+      custName = name.trim();
+      custPhone = phone || "";
+      // Save the new customer to this shop
+      try {
+        if (shopId) {
+          await addCustomer({ name: custName, phone: custPhone, shopId: parseInt(shopId) });
+        }
+      } catch {
+        // Non-fatal: still allow the order to proceed
+      }
+    } else {
+      const c = customers.find((c) => String(c.id) === String(selectedCustomerId));
+      if (c) {
+        custName = c.name;
+        custPhone = c.phone || "";
+      }
+    }
+
+    dispatch(setCustomer({ name: custName, phone: custPhone, guests: guestCount }));
+    setIsModalOpen(false);
     navigate("/tables");
-  }
+  };
 
   // Menu items available to the current role
   const currentRole = role || user?.role;
@@ -146,17 +200,46 @@ const BottomNav = () => {
 
       <Modal isOpen={isModalOpen} onClose={closeModal} title="Create Order">
         <div>
-          <label className="block text-[#ababab] mb-2 text-sm font-medium">Customer Name</label>
+          <label className="block text-[#ababab] mb-2 text-sm font-medium">Customer</label>
           <div className="flex items-center rounded-lg p-3 px-4 bg-[#1f1f1f]">
-            <input value={name} onChange={(e) => setName(e.target.value)} type="text" name="" placeholder="Enter customer name" id="" className="bg-transparent flex-1 text-white focus:outline-none"  />
+            <select
+              value={selectedCustomerId}
+              onChange={(e) => {
+                setSelectedCustomerId(e.target.value);
+                setName("");
+                setPhone("");
+              }}
+              className="bg-transparent flex-1 text-white focus:outline-none"
+            >
+              <option value="walkin" className="bg-[#1f1f1f]">🚶 Walk-in Customer</option>
+              {customers.map((c) => (
+                <option key={c.id} value={c.id} className="bg-[#1f1f1f]">
+                  {c.name}{c.phone ? ` — ${c.phone}` : ""}
+                </option>
+              ))}
+              <option value="new" className="bg-[#1f1f1f]">➕ Add new customer…</option>
+            </select>
           </div>
         </div>
-        <div>
-          <label className="block text-[#ababab] mb-2 mt-3 text-sm font-medium">Customer Phone</label>
-          <div className="flex items-center rounded-lg p-3 px-4 bg-[#1f1f1f]">
-            <input value={phone} onChange={(e) => setPhone(e.target.value)} type="number" name="" placeholder="+91-9999999999" id="" className="bg-transparent flex-1 text-white focus:outline-none"  />
-          </div>
-        </div>
+
+        {(selectedCustomerId === "walkin" || selectedCustomerId === "new") && (
+          <>
+            <div>
+              <label className="block text-[#ababab] mb-2 mt-3 text-sm font-medium">
+                Customer Name {selectedCustomerId === "new" ? "*" : "(optional)"}
+              </label>
+              <div className="flex items-center rounded-lg p-3 px-4 bg-[#1f1f1f]">
+                <input value={name} onChange={(e) => setName(e.target.value)} type="text" placeholder={selectedCustomerId === "new" ? "Enter customer name" : "Walk-in Customer"} className="bg-transparent flex-1 text-white focus:outline-none" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-[#ababab] mb-2 mt-3 text-sm font-medium">Customer Phone</label>
+              <div className="flex items-center rounded-lg p-3 px-4 bg-[#1f1f1f]">
+                <input value={phone} onChange={(e) => setPhone(e.target.value)} type="number" placeholder="Phone number" className="bg-transparent flex-1 text-white focus:outline-none" />
+              </div>
+            </div>
+          </>
+        )}
         <div>
           <label className="block mb-2 mt-3 text-sm font-medium text-[#ababab]">Guest</label>
           <div className="flex items-center justify-between bg-[#1f1f1f] px-4 py-3 rounded-lg">

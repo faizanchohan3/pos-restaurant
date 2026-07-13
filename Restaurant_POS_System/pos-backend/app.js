@@ -1087,6 +1087,72 @@ app.delete("/api/delivery/:id", async (req, res) => {
   }
 });
 
+// ==================== CUSTOMER ROUTES ====================
+
+app.get("/api/customers", async (req, res) => {
+  try {
+    if (!db) return res.status(503).json({ success: false, message: "Database not connected" });
+    const shopId = req.query.shopId;
+    let query = 'SELECT * FROM "Customer" ORDER BY name ASC';
+    let values = [];
+    if (shopId) {
+      query = 'SELECT * FROM "Customer" WHERE "shopId" = $1 ORDER BY name ASC';
+      values = [parseInt(shopId)];
+    }
+    const result = await db.query(query, values);
+    res.status(200).json({ success: true, data: result.rows });
+  } catch (error) {
+    console.error("Error fetching customers:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.post("/api/customers", async (req, res) => {
+  try {
+    if (!db) return res.status(503).json({ success: false, message: "Database not connected" });
+    const { name, phone, email, address, shopId } = req.body;
+    if (!name || !shopId) {
+      return res.status(400).json({ success: false, message: "Customer name and shop ID are required" });
+    }
+    const result = await db.query(
+      'INSERT INTO "Customer" (name, phone, email, address, "shopId", "createdAt") VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING *',
+      [name, phone || '', email || '', address || '', parseInt(shopId)]
+    );
+    res.status(201).json({ success: true, message: "Customer added!", data: result.rows[0] });
+  } catch (error) {
+    console.error("Error creating customer:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.put("/api/customers/:id", async (req, res) => {
+  try {
+    if (!db) return res.status(503).json({ success: false, message: "Database not connected" });
+    const { name, phone, email, address } = req.body;
+    const result = await db.query(
+      'UPDATE "Customer" SET name = COALESCE($1, name), phone = COALESCE($2, phone), email = COALESCE($3, email), address = COALESCE($4, address) WHERE id = $5 RETURNING *',
+      [name || null, phone ?? null, email ?? null, address ?? null, parseInt(req.params.id)]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ success: false, message: "Customer not found" });
+    res.status(200).json({ success: true, message: "Customer updated!", data: result.rows[0] });
+  } catch (error) {
+    console.error("Error updating customer:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.delete("/api/customers/:id", async (req, res) => {
+  try {
+    if (!db) return res.status(503).json({ success: false, message: "Database not connected" });
+    const result = await db.query('DELETE FROM "Customer" WHERE id = $1 RETURNING *', [parseInt(req.params.id)]);
+    if (result.rows.length === 0) return res.status(404).json({ success: false, message: "Customer not found" });
+    res.status(200).json({ success: true, message: "Customer deleted!", data: result.rows[0] });
+  } catch (error) {
+    console.error("Error deleting customer:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // Global Error Handler
 app.use(globalErrorHandler);
 

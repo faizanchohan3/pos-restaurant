@@ -118,6 +118,13 @@ const AdminDashboard = () => {
       color: "from-purple-600 to-purple-800",
     },
     {
+      icon: "👤",
+      title: "Customers",
+      description: "Manage your shop's customers",
+      route: "/customers",
+      color: "from-teal-600 to-teal-800",
+    },
+    {
       icon: "📂",
       title: "Categories",
       description: "Organize product categories",

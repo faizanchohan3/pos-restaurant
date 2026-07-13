@@ -164,15 +164,17 @@ const Bill = () => {
 
       setOrderInfo(data);
 
-      // Update Table
+      // Update Table (backend returns id / tableId, not _id / table)
       const tableData = {
         status: "Booked",
-        orderId: data._id,
-        tableId: data.table,
+        orderId: data.id,
+        tableId: data.tableId,
       };
 
       setTimeout(() => {
-        tableUpdateMutation.mutate(tableData);
+        if (tableData.tableId) {
+          tableUpdateMutation.mutate(tableData);
+        }
       }, 1500);
 
       enqueueSnackbar("Order Placed!", {
