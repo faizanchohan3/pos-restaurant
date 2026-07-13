@@ -73,9 +73,14 @@ const AdminDashboard = () => {
               (o) => o.orderStatus !== "completed" && o.orderStatus !== "cancelled"
             ).length;
 
-            // Calculate today's revenue
+            // Calculate today's revenue. bills is a JSON object
+            // ({ total, tax, totalWithTax }) but may be a string on old records.
             todayRevenue = todayOrders.reduce((sum, order) => {
-              return sum + (parseFloat(order.bills) || 0);
+              const bills = order.bills;
+              if (bills && typeof bills === "object") {
+                return sum + (parseFloat(bills.totalWithTax) || 0);
+              }
+              return sum + (parseFloat(bills) || 0);
             }, 0);
           }
         }
