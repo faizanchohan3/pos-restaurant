@@ -19,10 +19,11 @@ const Login = () => {
       setFormData({...formData, [e.target.name]: e.target.value});
     }
 
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://pos-backend-lime.vercel.app";
+
     const checkSuperAdmin = async (email, password) => {
       try {
         // Query backend API for SuperAdmin authentication from Neon database
-        const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://pos-backend-lime.vercel.app";
         const response = await fetch(`${API_BASE_URL}/api/superadmin/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -38,14 +39,22 @@ const Login = () => {
       }
     };
 
-    const checkShopLogin = (email, password) => {
-      const approvedShops = JSON.parse(localStorage.getItem("approvedShops") || "[]");
-      return approvedShops.find(s => s.email === email && s.password === password && s.status === "approved");
-    };
+    const checkShopLogin = async (email, password) => {
+      try {
+        // Query backend API for approved shop from Neon database
+        const response = await fetch(`${API_BASE_URL}/api/shop-login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
 
-    const checkStaffLogin = (email, password) => {
-      const staffMembers = JSON.parse(localStorage.getItem("staffMembers") || "[]");
-      return staffMembers.find(s => s.email === email && s.password === password);
+        if (!response.ok) return null;
+        const data = await response.json();
+        return data.data;
+      } catch (error) {
+        console.error("Shop login error:", error);
+        return null;
+      }
     };
 
     const handleSubmit = async (e) => {
@@ -64,30 +73,21 @@ const Login = () => {
         return;
       }
 
-      // Check if it's an approved shop
-      const shop = checkShopLogin(formData.email, formData.password);
+      // Check if it's an approved shop (from Neon database)
+      const shop = await checkShopLogin(formData.email, formData.password);
       if (shop) {
-        localStorage.setItem("shopSession", JSON.stringify({ id: shop.id, name: shop.shopName, email: shop.email }));
+        // Save shop_id for multi-tenant data isolation
+        localStorage.setItem("selectedShop", shop.id);
+        localStorage.setItem("shopSession", JSON.stringify({ id: shop.id, name: shop.name, email: shop.email }));
         // Also set user in Redux for authentication
-        dispatch(setUser({ _id: shop.id, name: shop.shopName, email: shop.email, phone: shop.phone, role: "Admin" }));
-        enqueueSnackbar(`Welcome ${shop.shopName}! Redirecting to dashboard...`, { variant: "success" });
+        dispatch(setUser({ _id: shop.id, name: shop.name, email: shop.email, phone: shop.phone, role: "Admin" }));
+        enqueueSnackbar(`Welcome ${shop.name}! Redirecting to dashboard...`, { variant: "success" });
         setTimeout(() => navigate("/"), 800);
         return;
       }
 
-      // Check if it's a staff member
-      const staff = checkStaffLogin(formData.email, formData.password);
-      if (staff) {
-        localStorage.setItem("staffSession", JSON.stringify({ id: staff.id, name: staff.name, email: staff.email, role: staff.role }));
-        // Also set user in Redux for authentication
-        dispatch(setUser({ _id: staff.id, name: staff.name, email: staff.email, phone: "", role: staff.role }));
-        enqueueSnackbar(`Welcome ${staff.name}! Redirecting to dashboard...`, { variant: "success" });
-        setTimeout(() => navigate("/"), 800);
-        return;
-      }
-
-      // Otherwise try regular login
-      loginMutation.mutate(formData);
+      // No match found in database
+      enqueueSnackbar("Invalid credentials. Please check your email and password.", { variant: "error" });
     }
 
     const loginMutation = useMutation({
