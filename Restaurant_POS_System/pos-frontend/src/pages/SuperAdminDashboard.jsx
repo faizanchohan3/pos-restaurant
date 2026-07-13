@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { enqueueSnackbar } from "notistack";
-import { FiCheckCircle, FiXCircle, FiEye, FiLogOut, FiTrash2 } from "react-icons/fi";
+import { FiCheckCircle, FiXCircle, FiEye, FiLogOut, FiTrash2, FiKey } from "react-icons/fi";
 import { approveShop, rejectShop, deleteShop } from "../https/index";
 import API_BASE_URL from "../config/api";
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://pos-backend-lime.vercel.app";
 
 const SuperAdminDashboard = () => {
   const navigate = useNavigate();
@@ -14,6 +12,10 @@ const SuperAdminDashboard = () => {
   const [selectedShop, setSelectedShop] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [totalStaff, setTotalStaff] = useState(0);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordShop, setPasswordShop] = useState(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [passwordLoading, setPasswordLoading] = useState(false);
 
   useEffect(() => {
     document.title = "SuperAdmin - Shop Management";
@@ -138,6 +140,46 @@ const SuperAdminDashboard = () => {
     } catch (error) {
       console.error("Delete shop error:", error);
       enqueueSnackbar(error.response?.data?.message || "Failed to delete shop", { variant: "error" });
+    }
+  };
+
+  const handleOpenPasswordModal = (shop) => {
+    setPasswordShop(shop);
+    setNewPassword("");
+    setShowPasswordModal(true);
+  };
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    if (!newPassword || newPassword.length < 4) {
+      enqueueSnackbar("Password must be at least 4 characters", { variant: "warning" });
+      return;
+    }
+
+    setPasswordLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/shop/${passwordShop.id}/password`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: newPassword }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        enqueueSnackbar(data.message || "Failed to change password", { variant: "error" });
+        return;
+      }
+
+      enqueueSnackbar(`🔑 Password changed for ${passwordShop.name}!`, { variant: "success" });
+      setShowPasswordModal(false);
+      setPasswordShop(null);
+      setNewPassword("");
+    } catch (error) {
+      console.error("Change password error:", error);
+      enqueueSnackbar("Connection error. Please try again.", { variant: "error" });
+    } finally {
+      setPasswordLoading(false);
     }
   };
 
@@ -333,7 +375,14 @@ const SuperAdminDashboard = () => {
                   </p>
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex gap-3 flex-wrap">
+                  <button
+                    onClick={() => handleOpenPasswordModal(shop)}
+                    className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition"
+                    title="Change shop password"
+                  >
+                    <FiKey size={16} /> Change Password
+                  </button>
                   <button
                     onClick={() => handleDisapproveShop(shop)}
                     className="flex-1 bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded-lg transition"
@@ -356,21 +405,6 @@ const SuperAdminDashboard = () => {
                     className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition"
                   >
                     <FiEye size={16} /> Details
-                  </button>
-                  <button
-                    onClick={() => handleDisableShop(shop)}
-                    className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition"
-                  >
-                    Disable Shop
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSelectedShop(shop);
-                      setShowDetailsModal(true);
-                    }}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition"
-                  >
-                    <FiEye size={18} /> Details
                   </button>
                 </div>
               </div>
@@ -428,6 +462,65 @@ const SuperAdminDashboard = () => {
             >
               Close
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Change Password Modal */}
+      {showPasswordModal && passwordShop && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-[#2a2a2a] rounded-lg p-8 w-96 border border-[#383838]">
+            <h2 className="text-2xl font-bold text-[#f5f5f5] mb-2 flex items-center gap-2">
+              <FiKey /> Change Password
+            </h2>
+            <p className="text-[#ababab] text-sm mb-6">
+              Set a new password for <span className="text-purple-400 font-semibold">{passwordShop.name}</span>
+            </p>
+
+            <form onSubmit={handleChangePassword} className="space-y-4">
+              <div>
+                <label className="text-[#ababab] text-sm mb-2 block">Shop Email</label>
+                <input
+                  type="text"
+                  value={passwordShop.email}
+                  disabled
+                  className="w-full bg-[#1f1f1f] text-[#888] px-4 py-2 rounded-lg border border-[#383838] cursor-not-allowed"
+                />
+              </div>
+
+              <div>
+                <label className="text-[#ababab] text-sm mb-2 block">New Password *</label>
+                <input
+                  type="text"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter new password"
+                  autoFocus
+                  className="w-full bg-[#1f1f1f] text-white px-4 py-2 rounded-lg border border-[#383838] focus:border-purple-400 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPasswordModal(false);
+                    setPasswordShop(null);
+                    setNewPassword("");
+                  }}
+                  className="flex-1 bg-[#383838] hover:bg-[#484848] text-white font-bold py-2 rounded-lg transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={passwordLoading}
+                  className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-bold py-2 rounded-lg transition"
+                >
+                  {passwordLoading ? "Updating..." : "Update Password"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

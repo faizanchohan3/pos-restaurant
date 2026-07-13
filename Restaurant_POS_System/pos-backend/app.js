@@ -282,6 +282,36 @@ app.post("/api/shop-login", async (req, res) => {
   }
 });
 
+// Change shop password (SuperAdmin only)
+app.put("/api/shop/:id/password", async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({ success: false, message: "Database not connected" });
+    }
+
+    const shopId = parseInt(req.params.id);
+    const { password } = req.body;
+
+    if (!password || password.length < 4) {
+      return res.status(400).json({ success: false, message: "Password must be at least 4 characters" });
+    }
+
+    const result = await db.query(
+      'UPDATE "Shop" SET password = $1, "updatedAt" = NOW() WHERE id = $2 RETURNING id, name, email',
+      [password, shopId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: "Shop not found" });
+    }
+
+    res.status(200).json({ success: true, message: "Password updated successfully!", data: result.rows[0] });
+  } catch (error) {
+    console.error("Error updating shop password:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // Reject/Disapprove shop
 app.put("/api/shop/:id/reject", async (req, res) => {
   try {
