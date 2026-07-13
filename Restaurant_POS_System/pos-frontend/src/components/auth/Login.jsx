@@ -95,7 +95,7 @@ const Login = () => {
       onSuccess: (res) => {
           const { data } = res;
           console.log("Login successful:", data);
-          const { _id, name, email, phone, role } = data.data;
+          const { _id, name, email, phone, role, shopId } = data.data;
 
           // Dispatch user to Redux
           dispatch(setUser({ _id, name, email, phone, role }));
@@ -103,9 +103,9 @@ const Login = () => {
           // Show success message
           enqueueSnackbar(`Welcome ${name}! Redirecting to dashboard...`, { variant: "success" });
 
-          // Set shop if it's an Admin
-          if (role === "Admin") {
-            localStorage.setItem("selectedShop", "1");
+          // Persist this user's real shop id (never hardcode)
+          if (shopId) {
+            localStorage.setItem("selectedShop", String(shopId));
           }
 
           // Redirect after a brief delay so user sees the success message

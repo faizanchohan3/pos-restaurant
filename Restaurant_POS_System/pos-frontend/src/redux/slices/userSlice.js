@@ -51,10 +51,9 @@ const userSlice = createSlice({
         })
       );
 
-      // Also set shop if Admin
-      if (role === "Admin") {
-        localStorage.setItem("selectedShop", "1");
-      }
+      // NOTE: Do NOT set selectedShop here. The correct shop id is set by the
+      // login handler (shop id for shop admins, staff.shopId for staff).
+      // Hardcoding it caused every shop to share shopId=1 and leak staff/data.
     },
 
     removeUser: (state) => {

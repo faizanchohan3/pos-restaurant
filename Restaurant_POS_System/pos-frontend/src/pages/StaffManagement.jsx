@@ -23,7 +23,7 @@ const StaffManagement = () => {
     password: "",
   });
 
-  const shopId = localStorage.getItem("selectedShop") || 1;
+  const shopId = localStorage.getItem("selectedShop");
 
   // Protect route - only Admin can access
   if (role !== "Admin") {
@@ -94,6 +94,13 @@ const StaffManagement = () => {
 
   const handleAddStaff = async (e) => {
     e.preventDefault();
+
+    if (!shopId) {
+      enqueueSnackbar("No shop selected. Please log in again.", {
+        variant: "error",
+      });
+      return;
+    }
 
     if (!formData.name || !formData.email || !formData.role) {
       enqueueSnackbar("Please fill all required fields", {
