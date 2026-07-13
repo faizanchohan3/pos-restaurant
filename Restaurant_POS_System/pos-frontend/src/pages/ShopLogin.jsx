@@ -1,13 +1,18 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
 import { enqueueSnackbar } from "notistack";
+import { setUser } from "../redux/slices/userSlice";
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://pos-backend-lime.vercel.app";
 
 const ShopLogin = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [isLogin, setIsLogin] = useState(true);
-  const [loginData, setLoginData] = useState({ shopName: "", password: "" });
+  const [loginData, setLoginData] = useState({ email: "", password: "" });
   const [registerData, setRegisterData] = useState({
-    shopName: "",
+    name: "",
     ownerName: "",
     email: "",
     phone: "",
@@ -19,40 +24,58 @@ const ShopLogin = () => {
 
   const handleShopLogin = async (e) => {
     e.preventDefault();
-    if (!loginData.shopName || !loginData.password) {
+    if (!loginData.email || !loginData.password) {
       enqueueSnackbar("Please fill all fields", { variant: "warning" });
       return;
     }
 
     setLoading(true);
     try {
-      // Mock API call
-      const shops = JSON.parse(localStorage.getItem("approvedShops") || "[]");
-      const shop = shops.find(
-        (s) => s.name === loginData.shopName && s.status === "approved"
-      );
+      // Call backend API to authenticate shop
+      const response = await fetch(`${API_BASE_URL}/api/shop-login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(loginData),
+      });
 
-      if (!shop) {
-        enqueueSnackbar("Shop not found or not approved yet!", {
-          variant: "error",
-        });
+      const data = await response.json();
+
+      if (!response.ok) {
+        enqueueSnackbar(data.message || "Login failed", { variant: "error" });
         return;
       }
 
-      if (shop.password !== loginData.password) {
-        enqueueSnackbar("Invalid credentials!", { variant: "error" });
-        return;
-      }
+      const shopData = data.data;
 
-      // Store shop session
+      // Save shop_id and shop info to localStorage
+      localStorage.setItem("selectedShop", shopData.id);
       localStorage.setItem(
         "shopSession",
-        JSON.stringify({ id: shop.id, name: shop.name, email: shop.email })
+        JSON.stringify({
+          id: shopData.id,
+          name: shopData.name,
+          email: shopData.email,
+        })
       );
-      enqueueSnackbar("Login successful!", { variant: "success" });
 
-      // Redirect to shop dashboard
+      // Dispatch to Redux for authentication
+      dispatch(
+        setUser({
+          _id: shopData.id,
+          name: shopData.name,
+          email: shopData.email,
+          phone: shopData.phone,
+          role: "Admin",
+        })
+      );
+
+      enqueueSnackbar("Login successful!", { variant: "success" });
       setTimeout(() => navigate("/"), 1500);
+    } catch (error) {
+      console.error("Login error:", error);
+      enqueueSnackbar("Connection error. Please try again.", {
+        variant: "error",
+      });
     } finally {
       setLoading(false);
     }
@@ -61,7 +84,7 @@ const ShopLogin = () => {
   const handleShopRegister = async (e) => {
     e.preventDefault();
     if (
-      !registerData.shopName ||
+      !registerData.name ||
       !registerData.ownerName ||
       !registerData.email ||
       !registerData.phone ||
@@ -78,30 +101,36 @@ const ShopLogin = () => {
 
     setLoading(true);
     try {
-      const newShop = {
-        id: Date.now(),
-        name: registerData.shopName,
-        ownerName: registerData.ownerName,
-        email: registerData.email,
-        phone: registerData.phone,
-        address: registerData.address,
-        password: registerData.password,
-        status: "pending",
-        createdAt: new Date().toISOString(),
-      };
+      // Call backend API to register shop
+      const response = await fetch(`${API_BASE_URL}/api/shop/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: registerData.name,
+          ownerName: registerData.ownerName,
+          email: registerData.email,
+          phone: registerData.phone,
+          address: registerData.address,
+          password: registerData.password,
+        }),
+      });
 
-      const pendingShops = JSON.parse(
-        localStorage.getItem("pendingShops") || "[]"
-      );
-      pendingShops.push(newShop);
-      localStorage.setItem("pendingShops", JSON.stringify(pendingShops));
+      const data = await response.json();
+
+      if (!response.ok) {
+        enqueueSnackbar(data.message || "Registration failed", {
+          variant: "error",
+        });
+        return;
+      }
 
       enqueueSnackbar(
         "Shop registered successfully! Waiting for SuperAdmin approval.",
         { variant: "success" }
       );
+
       setRegisterData({
-        shopName: "",
+        name: "",
         ownerName: "",
         email: "",
         phone: "",
@@ -109,7 +138,13 @@ const ShopLogin = () => {
         password: "",
         confirmPassword: "",
       });
+
       setTimeout(() => setIsLogin(true), 2000);
+    } catch (error) {
+      console.error("Registration error:", error);
+      enqueueSnackbar("Connection error. Please try again.", {
+        variant: "error",
+      });
     } finally {
       setLoading(false);
     }
@@ -118,19 +153,17 @@ const ShopLogin = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#1f1f1f] to-[#2a2a2a] flex items-center justify-center p-4">
       <div className="w-full max-w-md bg-[#2a2a2a] rounded-2xl border border-[#383838] p-8">
-        {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-[#f5f5f5] mb-2">🏪 Steam Cafe</h1>
-          <p className="text-[#ababab]">Restaurant Management System</p>
+          <h1 className="text-3xl font-bold text-[#f5f5f5] mb-2">🏪 Shop Login</h1>
+          <p className="text-[#ababab]">Manage your restaurant</p>
         </div>
 
-        {/* Toggle Buttons */}
         <div className="flex gap-2 mb-8">
           <button
             onClick={() => setIsLogin(true)}
-            className={`flex-1 py-2 px-4 rounded-lg font-semibold transition ${
+            className={`flex-1 py-2 rounded-lg font-semibold transition ${
               isLogin
-                ? "bg-yellow-400 text-gray-900"
+                ? "bg-blue-600 text-white"
                 : "bg-[#383838] text-[#ababab] hover:bg-[#484848]"
             }`}
           >
@@ -138,9 +171,9 @@ const ShopLogin = () => {
           </button>
           <button
             onClick={() => setIsLogin(false)}
-            className={`flex-1 py-2 px-4 rounded-lg font-semibold transition ${
+            className={`flex-1 py-2 rounded-lg font-semibold transition ${
               !isLogin
-                ? "bg-yellow-400 text-gray-900"
+                ? "bg-green-600 text-white"
                 : "bg-[#383838] text-[#ababab] hover:bg-[#484848]"
             }`}
           >
@@ -148,24 +181,21 @@ const ShopLogin = () => {
           </button>
         </div>
 
-        {/* Login Form */}
         {isLogin ? (
-          <form onSubmit={handleShopLogin}>
-            <div className="mb-4">
-              <label className="text-[#ababab] text-sm mb-2 block">
-                Shop Name
-              </label>
+          <form onSubmit={handleShopLogin} className="space-y-4">
+            <div>
+              <label className="text-[#ababab] text-sm mb-2 block">Email</label>
               <input
-                type="text"
-                value={loginData.shopName}
+                type="email"
+                value={loginData.email}
                 onChange={(e) =>
-                  setLoginData({ ...loginData, shopName: e.target.value })
+                  setLoginData({ ...loginData, email: e.target.value })
                 }
-                placeholder="Enter shop name"
-                className="w-full bg-[#1f1f1f] text-white px-4 py-2 rounded-lg focus:outline-none border border-[#383838] focus:border-yellow-400"
+                placeholder="Enter shop email"
+                className="w-full bg-[#1f1f1f] text-white px-4 py-2 rounded-lg focus:outline-none border border-[#383838] focus:border-blue-400"
               />
             </div>
-            <div className="mb-6">
+            <div>
               <label className="text-[#ababab] text-sm mb-2 block">
                 Password
               </label>
@@ -176,37 +206,36 @@ const ShopLogin = () => {
                   setLoginData({ ...loginData, password: e.target.value })
                 }
                 placeholder="Enter password"
-                className="w-full bg-[#1f1f1f] text-white px-4 py-2 rounded-lg focus:outline-none border border-[#383838] focus:border-yellow-400"
+                className="w-full bg-[#1f1f1f] text-white px-4 py-2 rounded-lg focus:outline-none border border-[#383838] focus:border-blue-400"
               />
             </div>
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-yellow-400 hover:bg-yellow-500 disabled:opacity-50 text-gray-900 font-bold py-2 px-4 rounded-lg transition"
+              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-2 px-4 rounded-lg transition"
             >
               {loading ? "Logging in..." : "Shop Login"}
             </button>
           </form>
         ) : (
-          /* Register Form */
           <form onSubmit={handleShopRegister} className="space-y-4">
             <div>
-              <label className="text-[#ababab] text-sm mb-1 block">
-                Shop Name *
+              <label className="text-[#ababab] text-sm mb-2 block">
+                Shop Name
               </label>
               <input
                 type="text"
-                value={registerData.shopName}
+                value={registerData.name}
                 onChange={(e) =>
-                  setRegisterData({ ...registerData, shopName: e.target.value })
+                  setRegisterData({ ...registerData, name: e.target.value })
                 }
                 placeholder="Enter shop name"
-                className="w-full bg-[#1f1f1f] text-white px-4 py-2 rounded-lg focus:outline-none border border-[#383838] focus:border-yellow-400 text-sm"
+                className="w-full bg-[#1f1f1f] text-white px-4 py-2 rounded-lg focus:outline-none border border-[#383838] focus:border-green-400"
               />
             </div>
             <div>
-              <label className="text-[#ababab] text-sm mb-1 block">
-                Owner Name *
+              <label className="text-[#ababab] text-sm mb-2 block">
+                Owner Name
               </label>
               <input
                 type="text"
@@ -218,13 +247,11 @@ const ShopLogin = () => {
                   })
                 }
                 placeholder="Enter owner name"
-                className="w-full bg-[#1f1f1f] text-white px-4 py-2 rounded-lg focus:outline-none border border-[#383838] focus:border-yellow-400 text-sm"
+                className="w-full bg-[#1f1f1f] text-white px-4 py-2 rounded-lg focus:outline-none border border-[#383838] focus:border-green-400"
               />
             </div>
             <div>
-              <label className="text-[#ababab] text-sm mb-1 block">
-                Email *
-              </label>
+              <label className="text-[#ababab] text-sm mb-2 block">Email</label>
               <input
                 type="email"
                 value={registerData.email}
@@ -232,54 +259,58 @@ const ShopLogin = () => {
                   setRegisterData({ ...registerData, email: e.target.value })
                 }
                 placeholder="Enter email"
-                className="w-full bg-[#1f1f1f] text-white px-4 py-2 rounded-lg focus:outline-none border border-[#383838] focus:border-yellow-400 text-sm"
+                className="w-full bg-[#1f1f1f] text-white px-4 py-2 rounded-lg focus:outline-none border border-[#383838] focus:border-green-400"
               />
             </div>
             <div>
-              <label className="text-[#ababab] text-sm mb-1 block">
-                Phone *
-              </label>
+              <label className="text-[#ababab] text-sm mb-2 block">Phone</label>
               <input
                 type="tel"
                 value={registerData.phone}
                 onChange={(e) =>
                   setRegisterData({ ...registerData, phone: e.target.value })
                 }
-                placeholder="Enter phone number"
-                className="w-full bg-[#1f1f1f] text-white px-4 py-2 rounded-lg focus:outline-none border border-[#383838] focus:border-yellow-400 text-sm"
+                placeholder="Enter phone"
+                className="w-full bg-[#1f1f1f] text-white px-4 py-2 rounded-lg focus:outline-none border border-[#383838] focus:border-green-400"
               />
             </div>
             <div>
-              <label className="text-[#ababab] text-sm mb-1 block">
+              <label className="text-[#ababab] text-sm mb-2 block">
                 Address
               </label>
               <input
                 type="text"
                 value={registerData.address}
                 onChange={(e) =>
-                  setRegisterData({ ...registerData, address: e.target.value })
+                  setRegisterData({
+                    ...registerData,
+                    address: e.target.value,
+                  })
                 }
                 placeholder="Enter address"
-                className="w-full bg-[#1f1f1f] text-white px-4 py-2 rounded-lg focus:outline-none border border-[#383838] focus:border-yellow-400 text-sm"
+                className="w-full bg-[#1f1f1f] text-white px-4 py-2 rounded-lg focus:outline-none border border-[#383838] focus:border-green-400"
               />
             </div>
             <div>
-              <label className="text-[#ababab] text-sm mb-1 block">
-                Password *
+              <label className="text-[#ababab] text-sm mb-2 block">
+                Password
               </label>
               <input
                 type="password"
                 value={registerData.password}
                 onChange={(e) =>
-                  setRegisterData({ ...registerData, password: e.target.value })
+                  setRegisterData({
+                    ...registerData,
+                    password: e.target.value,
+                  })
                 }
                 placeholder="Enter password"
-                className="w-full bg-[#1f1f1f] text-white px-4 py-2 rounded-lg focus:outline-none border border-[#383838] focus:border-yellow-400 text-sm"
+                className="w-full bg-[#1f1f1f] text-white px-4 py-2 rounded-lg focus:outline-none border border-[#383838] focus:border-green-400"
               />
             </div>
             <div>
-              <label className="text-[#ababab] text-sm mb-1 block">
-                Confirm Password *
+              <label className="text-[#ababab] text-sm mb-2 block">
+                Confirm Password
               </label>
               <input
                 type="password"
@@ -291,27 +322,25 @@ const ShopLogin = () => {
                   })
                 }
                 placeholder="Confirm password"
-                className="w-full bg-[#1f1f1f] text-white px-4 py-2 rounded-lg focus:outline-none border border-[#383838] focus:border-yellow-400 text-sm"
+                className="w-full bg-[#1f1f1f] text-white px-4 py-2 rounded-lg focus:outline-none border border-[#383838] focus:border-green-400"
               />
             </div>
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-yellow-400 hover:bg-yellow-500 disabled:opacity-50 text-gray-900 font-bold py-2 px-4 rounded-lg transition"
+              className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-bold py-2 px-4 rounded-lg transition"
             >
               {loading ? "Registering..." : "Register Shop"}
             </button>
           </form>
         )}
 
-        {/* User Login Link */}
-        <div className="mt-6 text-center border-t border-[#383838] pt-6">
-          <p className="text-[#ababab] text-sm mb-3">Staff/Manager Login?</p>
+        <div className="mt-6 text-center border-t border-[#383838] pt-4">
           <button
-            onClick={() => navigate("/auth")}
-            className="text-yellow-400 hover:text-yellow-500 font-semibold"
+            onClick={() => window.history.back()}
+            className="text-[#ababab] hover:text-blue-400 text-sm"
           >
-            Go to User Login →
+            ← Back
           </button>
         </div>
       </div>

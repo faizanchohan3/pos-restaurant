@@ -239,6 +239,49 @@ app.put("/api/shop/:id/approve", async (req, res) => {
   }
 });
 
+// Shop Login (after approval)
+app.post("/api/shop-login", async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({ success: false, message: "Database not connected" });
+    }
+
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: "Email and password required" });
+    }
+
+    // Query for approved shop
+    const result = await db.query(
+      'SELECT * FROM "Shop" WHERE email = $1 AND password = $2 AND status = $3',
+      [email, password, 'approved']
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(401).json({ success: false, message: "Invalid credentials or shop not approved" });
+    }
+
+    const shop = result.rows[0];
+    res.cookie('accessToken', 'shop-' + shop.id, { httpOnly: true });
+    res.status(200).json({
+      success: true,
+      message: "Shop login successful",
+      data: {
+        id: shop.id,
+        name: shop.name,
+        email: shop.email,
+        phone: shop.phone,
+        ownerName: shop.ownerName,
+        role: "Admin"
+      }
+    });
+  } catch (error) {
+    console.error("Shop login error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // Reject/Disapprove shop
 app.put("/api/shop/:id/reject", async (req, res) => {
   try {
