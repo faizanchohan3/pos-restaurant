@@ -5,12 +5,15 @@ import { FiCheckCircle, FiXCircle, FiEye, FiLogOut, FiTrash2 } from "react-icons
 import { approveShop, rejectShop, deleteShop } from "../https/index";
 import API_BASE_URL from "../config/api";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://pos-backend-lime.vercel.app";
+
 const SuperAdminDashboard = () => {
   const navigate = useNavigate();
   const [pendingShops, setPendingShops] = useState([]);
   const [approvedShops, setApprovedShops] = useState([]);
   const [selectedShop, setSelectedShop] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [totalStaff, setTotalStaff] = useState(0);
 
   useEffect(() => {
     document.title = "SuperAdmin - Shop Management";
@@ -19,7 +22,7 @@ const SuperAdminDashboard = () => {
 
   const loadShops = async () => {
     try {
-      // Load from database API
+      // Load shops from database API
       const response = await fetch(`${API_BASE_URL}/api/shop`);
       if (response.ok) {
         const data = await response.json();
@@ -30,6 +33,21 @@ const SuperAdminDashboard = () => {
 
         setPendingShops(pending);
         setApprovedShops(approved);
+
+        // Load total staff count from all shops
+        let staffCount = 0;
+        for (const shop of approved) {
+          try {
+            const staffRes = await fetch(`${API_BASE_URL}/api/staff/shop/${shop.id}`);
+            const staffData = await staffRes.json();
+            if (staffData.success && Array.isArray(staffData.data)) {
+              staffCount += staffData.data.length;
+            }
+          } catch (e) {
+            console.log("Error fetching staff for shop:", shop.id);
+          }
+        }
+        setTotalStaff(staffCount);
       } else {
         console.log("No shops found in database");
       }
@@ -189,9 +207,9 @@ const SuperAdminDashboard = () => {
             </p>
           </div>
           <div className="bg-[#2a2a2a] border border-[#383838] rounded-lg p-4">
-            <p className="text-[#ababab] text-sm mb-1">Active Users</p>
+            <p className="text-[#ababab] text-sm mb-1">Total Staff</p>
             <p className="text-3xl font-bold text-blue-400">
-              {approvedShops.length * 5}
+              {totalStaff}
             </p>
           </div>
         </div>
