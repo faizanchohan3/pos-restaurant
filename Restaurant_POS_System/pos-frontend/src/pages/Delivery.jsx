@@ -5,7 +5,7 @@ import { enqueueSnackbar } from "notistack";
 import { FiMapPin, FiPhone, FiClock, FiPlus, FiMinus, FiTrash2 } from "react-icons/fi";
 import { FaPrint } from "react-icons/fa";
 import { getCustomers, addCustomer } from "../https";
-import { parseJSON } from "../utils";
+import { parseJSON, printReport } from "../utils";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://pos-backend-lime.vercel.app";
 const TAX_RATE = 5.25;
@@ -26,6 +26,10 @@ const Delivery = () => {
   // invoice
   const [printOrder, setPrintOrder] = useState(null);
   const [showInvoice, setShowInvoice] = useState(false);
+
+  // filters
+  const [search, setSearch] = useState("");
+  const [dateFilter, setDateFilter] = useState("");
 
   useEffect(() => {
     document.title = "POS | Delivery Orders";
@@ -213,6 +217,52 @@ const Delivery = () => {
     Cancelled: "bg-red-900 text-red-200",
   };
 
+  const filteredDeliveries = deliveryOrders.filter((o) => {
+    const matchesName = o.customerName.toLowerCase().includes(search.toLowerCase());
+    const matchesDate =
+      !dateFilter ||
+      (o.createdAt && new Date(o.createdAt).toISOString().slice(0, 10) === dateFilter);
+    return matchesName && matchesDate;
+  });
+
+  const handlePrintReport = () => {
+    const shopName = (() => {
+      try {
+        return JSON.parse(localStorage.getItem("shopSession"))?.name || "Delivery";
+      } catch {
+        return "Delivery";
+      }
+    })();
+    let revenue = 0;
+    const rows = filteredDeliveries
+      .map((o) => {
+        revenue += Number(o.total) || 0;
+        return `
+        <tr>
+          <td>#${o.id}</td>
+          <td>${o.customerName}</td>
+          <td>${o.phone || "-"}</td>
+          <td>${o.address || "-"}</td>
+          <td class="center">${o.items}</td>
+          <td class="right">PKR ${(Number(o.total) || 0).toFixed(2)}</td>
+          <td>${o.status}</td>
+          <td>${o.createdAt ? new Date(o.createdAt).toLocaleString() : ""}</td>
+        </tr>`;
+      })
+      .join("");
+    const table = `
+      <table>
+        <thead><tr><th>#</th><th>Customer</th><th>Phone</th><th>Address</th><th class="center">Items</th><th class="right">Total</th><th>Status</th><th>Date</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="8" class="center">No deliveries</td></tr>'}</tbody>
+        <tfoot><tr><td colspan="5">Total deliveries: ${filteredDeliveries.length}</td><td class="right">PKR ${revenue.toFixed(2)}</td><td colspan="2"></td></tr></tfoot>
+      </table>`;
+    printReport(
+      `${shopName} — Delivery Report`,
+      `${dateFilter ? `Date: ${dateFilter}` : "All dates"}${search ? ` · Search: "${search}"` : ""}`,
+      table
+    );
+  };
+
   return (
     <section className="bg-[#1f1f1f] h-[calc(100vh-5rem)] overflow-hidden flex flex-col">
       <div className="flex items-center justify-between px-10 py-4">
@@ -220,23 +270,53 @@ const Delivery = () => {
           <BackButton />
           <h1 className="text-[#f5f5f5] text-2xl font-bold tracking-wider">Delivery Orders</h1>
         </div>
-        <button
-          onClick={openModal}
-          className="bg-yellow-400 text-gray-900 px-5 py-2 rounded-lg font-bold hover:bg-yellow-500"
-        >
-          + New Delivery
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handlePrintReport}
+            className="flex items-center gap-2 bg-[#2e4a40] text-[#02ca3a] px-4 py-2 rounded-lg font-bold hover:bg-[#345c4d]"
+          >
+            <FaPrint size={16} /> Print Report
+          </button>
+          <button
+            onClick={openModal}
+            className="bg-yellow-400 text-gray-900 px-5 py-2 rounded-lg font-bold hover:bg-yellow-500"
+          >
+            + New Delivery
+          </button>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex items-center gap-3 px-10 mb-3 flex-wrap">
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search customer..."
+          className="bg-[#2a2a2a] text-white px-4 py-2 rounded-lg border border-[#383838] focus:border-yellow-500 focus:outline-none text-sm w-56"
+        />
+        <input
+          type="date"
+          value={dateFilter}
+          onChange={(e) => setDateFilter(e.target.value)}
+          className="bg-[#2a2a2a] text-white px-4 py-2 rounded-lg border border-[#383838] focus:border-yellow-500 focus:outline-none text-sm"
+        />
+        {dateFilter && (
+          <button onClick={() => setDateFilter("")} className="text-[#ababab] text-sm hover:text-white">
+            Clear date
+          </button>
+        )}
       </div>
 
       {/* Delivery Orders */}
       <div className="flex-1 overflow-auto px-10 pb-4">
         {loading ? (
           <p className="text-[#ababab] py-8 text-center">Loading...</p>
-        ) : deliveryOrders.length === 0 ? (
-          <p className="text-[#ababab] py-8 text-center">No delivery orders yet.</p>
+        ) : filteredDeliveries.length === 0 ? (
+          <p className="text-[#ababab] py-8 text-center">No delivery orders match.</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {deliveryOrders.map((order) => (
+            {filteredDeliveries.map((order) => (
               <div key={order.id} className="bg-[#2a2a2a] rounded-lg p-4 border border-[#383838]">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">

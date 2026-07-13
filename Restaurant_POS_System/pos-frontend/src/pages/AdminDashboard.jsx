@@ -17,6 +17,7 @@ const AdminDashboard = () => {
     totalProducts: 0,
     todayRevenue: 0,
     totalTables: 0,
+    outstanding: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -102,12 +103,30 @@ const AdminDashboard = () => {
         console.log("Tables endpoint not available");
       }
 
+      // Outstanding customer balances (ledger debits - credits)
+      let outstanding = 0;
+      try {
+        const ledgerRes = await fetch(`${API_BASE_URL}/api/ledger?shopId=${shopId}`);
+        if (ledgerRes.ok) {
+          const ledgerData = await ledgerRes.json();
+          if (ledgerData.success && Array.isArray(ledgerData.data)) {
+            outstanding = ledgerData.data.reduce(
+              (sum, e) => sum + (e.type === "debit" ? 1 : -1) * (parseFloat(e.amount) || 0),
+              0
+            );
+          }
+        }
+      } catch (e) {
+        console.log("Ledger endpoint not available");
+      }
+
       setStats({
         totalStaff,
         activeOrders,
         totalProducts,
         todayRevenue,
         totalTables,
+        outstanding,
       });
     } catch (error) {
       console.error("Error fetching dashboard stats:", error);
@@ -205,7 +224,7 @@ const AdminDashboard = () => {
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-6 mt-12">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 mt-12">
           <div className="bg-[#2a2a2a] border border-[#383838] rounded-lg p-6">
             <p className="text-[#ababab] text-sm mb-2">Total Staff</p>
             <p className="text-3xl font-bold text-blue-400">
@@ -234,6 +253,12 @@ const AdminDashboard = () => {
             <p className="text-[#ababab] text-sm mb-2">Total Tables</p>
             <p className="text-3xl font-bold text-pink-400">
               {loading ? "..." : stats.totalTables}
+            </p>
+          </div>
+          <div className="bg-[#2a2a2a] border border-[#383838] rounded-lg p-6">
+            <p className="text-[#ababab] text-sm mb-2">Outstanding (Ledger)</p>
+            <p className="text-3xl font-bold text-red-400">
+              {loading ? "..." : `PKR ${Math.round(stats.outstanding).toLocaleString()}`}
             </p>
           </div>
         </div>

@@ -61,7 +61,12 @@ const Tables = () => {
   };
 
   const tablesList = resData?.data?.data || [];
-  const filteredTables = status === "all" ? tablesList : tablesList.filter(t => t.status === "Booked");
+  const filteredTables =
+    status === "booked"
+      ? tablesList.filter((t) => t.status === "Booked")
+      : status === "available"
+      ? tablesList.filter((t) => t.status !== "Booked")
+      : tablesList;
 
   return (
     <section className="bg-[#1f1f1f]  h-[calc(100vh-5rem)] overflow-hidden">
@@ -73,22 +78,21 @@ const Tables = () => {
           </h1>
         </div>
         <div className="flex items-center justify-around gap-4">
-          <button
-            onClick={() => setStatus("all")}
-            className={`text-[#ababab] text-lg ${
-              status === "all" && "bg-[#383838] rounded-lg px-5 py-2"
-            }  rounded-lg px-5 py-2 font-semibold`}
-          >
-            All
-          </button>
-          <button
-            onClick={() => setStatus("booked")}
-            className={`text-[#ababab] text-lg ${
-              status === "booked" && "bg-[#383838] rounded-lg px-5 py-2"
-            }  rounded-lg px-5 py-2 font-semibold`}
-          >
-            Booked
-          </button>
+          {[
+            { key: "all", label: "All" },
+            { key: "available", label: "Available" },
+            { key: "booked", label: "Booked" },
+          ].map((f) => (
+            <button
+              key={f.key}
+              onClick={() => setStatus(f.key)}
+              className={`text-[#ababab] text-base font-semibold rounded-lg px-4 py-2 ${
+                status === f.key ? "bg-[#383838] text-white" : ""
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
           <button
             onClick={() => setShowAddModal(true)}
             className="bg-yellow-400 text-gray-900 px-5 py-2 rounded-lg font-bold hover:bg-yellow-500"

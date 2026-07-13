@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import BackButton from "../components/shared/BackButton";
 import { enqueueSnackbar } from "notistack";
 import { FiEdit2, FiTrash2, FiPlus, FiBook } from "react-icons/fi";
+import { FaPrint } from "react-icons/fa";
+import { printReport } from "../utils";
 import {
   getCustomers,
   addCustomer,
@@ -107,6 +109,40 @@ const Customers = () => {
   const customerLedger = ledgerCustomer
     ? ledger.filter((e) => String(e.customerId) === String(ledgerCustomer.id))
     : [];
+
+  const handlePrintStatement = () => {
+    if (!ledgerCustomer) return;
+    const shopName = (() => {
+      try {
+        return JSON.parse(localStorage.getItem("shopSession"))?.name || "Statement";
+      } catch {
+        return "Statement";
+      }
+    })();
+    let running = 0;
+    const rows = customerLedger
+      .map((e) => {
+        running += (e.type === "debit" ? 1 : -1) * Number(e.amount || 0);
+        return `
+        <tr>
+          <td>${new Date(e.createdAt).toLocaleDateString()}</td>
+          <td>${e.description || ""}</td>
+          <td class="right">${e.type === "debit" ? money(e.amount) : "-"}</td>
+          <td class="right">${e.type === "credit" ? money(e.amount) : "-"}</td>
+          <td class="right">${money(running)}</td>
+        </tr>`;
+      })
+      .join("");
+    const bal = balanceFor(ledgerCustomer.id);
+    const table = `
+      <p style="margin:0 0 12px"><strong>Customer:</strong> ${ledgerCustomer.name}${ledgerCustomer.phone ? ` &middot; ${ledgerCustomer.phone}` : ""}</p>
+      <table>
+        <thead><tr><th>Date</th><th>Description</th><th class="right">Debit</th><th class="right">Credit</th><th class="right">Balance</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="5" class="center">No entries</td></tr>'}</tbody>
+        <tfoot><tr><td colspan="4">Outstanding balance</td><td class="right">${money(bal)}</td></tr></tfoot>
+      </table>`;
+    printReport(`${shopName} — Customer Statement`, ledgerCustomer.name, table);
+  };
 
   const openModal = (customer = null) => {
     if (customer) {
@@ -365,7 +401,15 @@ const Customers = () => {
                     );
                   })()}
                 </div>
-                <button onClick={() => setLedgerCustomer(null)} className="text-[#ababab] hover:text-white text-xl">✕</button>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handlePrintStatement}
+                    className="flex items-center gap-2 bg-[#2e4a40] text-[#02ca3a] px-3 py-1.5 rounded-lg text-sm font-semibold hover:bg-[#345c4d]"
+                  >
+                    <FaPrint size={14} /> Print
+                  </button>
+                  <button onClick={() => setLedgerCustomer(null)} className="text-[#ababab] hover:text-white text-xl">✕</button>
+                </div>
               </div>
 
               {/* Entries */}
