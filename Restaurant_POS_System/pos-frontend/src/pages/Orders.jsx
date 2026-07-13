@@ -1,67 +1,202 @@
 import React, { useState, useEffect } from "react";
 import BottomNav from "../components/shared/BottomNav";
-import OrderCard from "../components/orders/OrderCard";
 import BackButton from "../components/shared/BackButton";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { getOrders } from "../https/index";
-import { enqueueSnackbar } from "notistack"
+import Invoice from "../components/invoice/Invoice";
+import { keepPreviousData, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getOrders, updateOrderStatus } from "../https/index";
+import { enqueueSnackbar } from "notistack";
+import { formatDateAndTime, parseJSON } from "../utils";
+import { FaPrint } from "react-icons/fa";
+
+const STATUS_OPTIONS = ["In Progress", "Ready", "Delivered", "Completed"];
+
+const statusBadge = (status) => {
+  switch (status) {
+    case "Completed":
+      return "text-green-400 bg-[#1f3d2b]";
+    case "Ready":
+      return "text-blue-400 bg-[#1e2f4a]";
+    case "Delivered":
+      return "text-purple-400 bg-[#2e2450]";
+    case "Cancelled":
+      return "text-red-400 bg-[#4a2020]";
+    default:
+      return "text-yellow-400 bg-[#4a452e]";
+  }
+};
 
 const Orders = () => {
-
   const [status, setStatus] = useState("all");
+  const [printOrder, setPrintOrder] = useState(null);
+  const [showInvoice, setShowInvoice] = useState(false);
+  const queryClient = useQueryClient();
 
-    useEffect(() => {
-      document.title = "POS | Orders"
-    }, [])
+  useEffect(() => {
+    document.title = "POS | Orders";
+  }, []);
 
   const shopId = localStorage.getItem("selectedShop");
 
   const { data: resData, isError } = useQuery({
     queryKey: ["orders", shopId],
-    queryFn: async () => {
-      return await getOrders(shopId);
-    },
-    placeholderData: keepPreviousData
-  })
+    queryFn: async () => getOrders(shopId),
+    placeholderData: keepPreviousData,
+  });
 
-  if(isError) {
-    enqueueSnackbar("Something went wrong!", {variant: "error"})
+  const updateMutation = useMutation({
+    mutationFn: ({ orderId, orderStatus }) => updateOrderStatus({ orderId, orderStatus }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      enqueueSnackbar("Order status updated!", { variant: "success" });
+    },
+    onError: () => enqueueSnackbar("Failed to update status", { variant: "error" }),
+  });
+
+  if (isError) {
+    enqueueSnackbar("Something went wrong!", { variant: "error" });
   }
 
+  const orders = resData?.data?.data || [];
+
+  const filtered = orders.filter((o) => {
+    if (status === "all") return true;
+    if (status === "progress") return o.orderStatus === "In Progress";
+    if (status === "ready") return o.orderStatus === "Ready";
+    if (status === "completed")
+      return o.orderStatus === "Completed" || o.orderStatus === "Delivered";
+    return true;
+  });
+
+  const handlePrint = (order) => {
+    setPrintOrder({
+      ...order,
+      customerDetails: parseJSON(order.customerDetails, {}),
+      bills: parseJSON(order.bills, {}),
+      items: parseJSON(order.items, []),
+      paymentData: parseJSON(order.paymentData, {}),
+    });
+    setShowInvoice(true);
+  };
+
+  const filters = [
+    { key: "all", label: "All" },
+    { key: "progress", label: "In Progress" },
+    { key: "ready", label: "Ready" },
+    { key: "completed", label: "Completed" },
+  ];
+
   return (
-    <section className="bg-[#1f1f1f]  h-[calc(100vh-5rem)] overflow-hidden">
+    <section className="bg-[#1f1f1f] h-[calc(100vh-5rem)] overflow-hidden flex flex-col">
       <div className="flex items-center justify-between px-10 py-4">
         <div className="flex items-center gap-4">
           <BackButton />
-          <h1 className="text-[#f5f5f5] text-2xl font-bold tracking-wider">
-            Orders
-          </h1>
+          <h1 className="text-[#f5f5f5] text-2xl font-bold tracking-wider">Orders</h1>
         </div>
-        <div className="flex items-center justify-around gap-4">
-          <button onClick={() => setStatus("all")} className={`text-[#ababab] text-lg ${status === "all" && "bg-[#383838] rounded-lg px-5 py-2"}  rounded-lg px-5 py-2 font-semibold`}>
-            All
-          </button>
-          <button onClick={() => setStatus("progress")} className={`text-[#ababab] text-lg ${status === "progress" && "bg-[#383838] rounded-lg px-5 py-2"}  rounded-lg px-5 py-2 font-semibold`}>
-            In Progress
-          </button>
-          <button onClick={() => setStatus("ready")} className={`text-[#ababab] text-lg ${status === "ready" && "bg-[#383838] rounded-lg px-5 py-2"}  rounded-lg px-5 py-2 font-semibold`}>
-            Ready
-          </button>
-          <button onClick={() => setStatus("completed")} className={`text-[#ababab] text-lg ${status === "completed" && "bg-[#383838] rounded-lg px-5 py-2"}  rounded-lg px-5 py-2 font-semibold`}>
-            Completed
-          </button>
+        <div className="flex items-center gap-2">
+          {filters.map((f) => (
+            <button
+              key={f.key}
+              onClick={() => setStatus(f.key)}
+              className={`text-[#ababab] text-sm font-semibold rounded-lg px-4 py-2 ${
+                status === f.key ? "bg-[#383838] text-white" : ""
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 px-16 py-4 overflow-y-scroll scrollbar-hide">
-        {
-          resData?.data.data.length > 0 ? (
-            resData.data.data.map((order) => {
-              return <OrderCard key={order.id} order={order} />
-            })
-          ) : <p className="col-span-3 text-gray-500">No orders available</p>
-        }
+      <div className="flex-1 overflow-auto px-10 pb-6">
+        <div className="overflow-x-auto rounded-lg border border-[#383838]">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-[#2a2a2a] text-[#ababab] sticky top-0">
+              <tr>
+                <th className="p-3 border-b border-[#383838]">Order #</th>
+                <th className="p-3 border-b border-[#383838]">Customer</th>
+                <th className="p-3 border-b border-[#383838]">Phone</th>
+                <th className="p-3 border-b border-[#383838]">Table</th>
+                <th className="p-3 border-b border-[#383838] text-center">Items</th>
+                <th className="p-3 border-b border-[#383838] text-right">Total</th>
+                <th className="p-3 border-b border-[#383838]">Payment</th>
+                <th className="p-3 border-b border-[#383838]">Date</th>
+                <th className="p-3 border-b border-[#383838]">Status</th>
+                <th className="p-3 border-b border-[#383838] text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={10} className="p-6 text-center text-[#ababab]">
+                    No orders available
+                  </td>
+                </tr>
+              ) : (
+                filtered.map((order, idx) => {
+                  const customer = parseJSON(order.customerDetails, {});
+                  const bills = parseJSON(order.bills, {});
+                  const items = parseJSON(order.items, []);
+                  const total = Number(bills.totalWithTax ?? bills.total ?? 0);
+                  const tableNo = order.tableNo ?? order.tableId ?? "-";
+                  return (
+                    <tr
+                      key={order.id ?? idx}
+                      className={`${idx % 2 ? "bg-[#242424]" : "bg-[#1c1c1c]"} hover:bg-[#2e2e2e] text-[#f5f5f5]`}
+                    >
+                      <td className="p-3 border-b border-[#333]">#{order.id}</td>
+                      <td className="p-3 border-b border-[#333]">
+                        {customer.name || "Walk-in Customer"}
+                      </td>
+                      <td className="p-3 border-b border-[#333] text-[#ababab]">
+                        {customer.phone || "-"}
+                      </td>
+                      <td className="p-3 border-b border-[#333]">{tableNo}</td>
+                      <td className="p-3 border-b border-[#333] text-center">{items.length}</td>
+                      <td className="p-3 border-b border-[#333] text-right font-semibold">
+                        PKR {total.toFixed(2)}
+                      </td>
+                      <td className="p-3 border-b border-[#333] text-[#ababab]">
+                        {order.paymentMethod || "Cash"}
+                      </td>
+                      <td className="p-3 border-b border-[#333] text-[#ababab] whitespace-nowrap">
+                        {formatDateAndTime(order.orderDate)}
+                      </td>
+                      <td className="p-3 border-b border-[#333]">
+                        <select
+                          value={STATUS_OPTIONS.includes(order.orderStatus) ? order.orderStatus : "In Progress"}
+                          onChange={(e) =>
+                            updateMutation.mutate({ orderId: order.id, orderStatus: e.target.value })
+                          }
+                          className={`px-2 py-1 rounded-md text-xs font-semibold focus:outline-none ${statusBadge(order.orderStatus)}`}
+                        >
+                          {STATUS_OPTIONS.map((s) => (
+                            <option key={s} value={s} className="bg-[#1f1f1f] text-white">
+                              {s}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="p-3 border-b border-[#333] text-center">
+                        <button
+                          onClick={() => handlePrint(order)}
+                          title="Print receipt"
+                          className="inline-flex items-center gap-1 bg-[#2e4a40] text-[#02ca3a] px-3 py-1.5 rounded-lg hover:bg-[#345c4d] text-xs font-semibold"
+                        >
+                          <FaPrint size={14} /> Print
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
+
+      {showInvoice && printOrder && (
+        <Invoice orderInfo={printOrder} setShowInvoice={setShowInvoice} />
+      )}
 
       <BottomNav />
     </section>

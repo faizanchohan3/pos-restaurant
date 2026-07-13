@@ -4,6 +4,7 @@ import { useSelector } from "react-redux";
 import { Navigate } from "react-router-dom";
 import { enqueueSnackbar } from "notistack";
 import BottomNav from "../components/shared/BottomNav";
+import OrdersReport from "../components/orders/OrdersReport";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://pos-backend-lime.vercel.app";
 
@@ -215,6 +216,11 @@ const AdminDashboard = () => {
               {loading ? "..." : `PKR ${stats.todayRevenue.toLocaleString()}`}
             </p>
           </div>
+        </div>
+
+        {/* Orders Report */}
+        <div className="mt-8">
+          <OrdersReport />
         </div>
       </div>
       <BottomNav />

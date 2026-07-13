@@ -1,33 +1,60 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { getAvatarName, getBgColor } from "../../utils"
+import { getAvatarName } from "../../utils";
 import { useDispatch } from "react-redux";
 import { updateTable } from "../../redux/slices/customerSlice";
-import { FaLongArrowAltRight } from "react-icons/fa";
+import { MdTableRestaurant } from "react-icons/md";
 
-const TableCard = ({id, name, status, initials, seats}) => {
+const TableCard = ({ id, name, status, initials, seats }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const handleClick = (name) => {
-    if(status === "Booked") return;
+  const isBooked = status === "Booked";
 
-    const table = { tableId: id, tableNo: name }
-    dispatch(updateTable({table}))
-    navigate(`/menu`);
+  const handleClick = () => {
+    if (isBooked) return;
+    dispatch(updateTable({ table: { tableId: id, tableNo: name } }));
+    navigate("/menu");
   };
 
   return (
-    <div onClick={() => handleClick(name)} key={id} className="w-[300px] hover:bg-[#2c2c2c] bg-[#262626] p-4 rounded-lg cursor-pointer">
-      <div className="flex items-center justify-between px-1">
-        <h1 className="text-[#f5f5f5] text-xl font-semibold">Table <FaLongArrowAltRight className="text-[#ababab] ml-2 inline" /> {name}</h1>
-        <p className={`${status === "Booked" ? "text-green-600 bg-[#2e4a40]" : "bg-[#664a04] text-white"} px-2 py-1 rounded-lg`}>
-          {status}
-        </p>
+    <div
+      onClick={handleClick}
+      className={`rounded-xl p-5 border transition ${
+        isBooked
+          ? "bg-[#262626] border-[#3a2b2b] cursor-not-allowed"
+          : "bg-[#262626] border-[#2e4a40] hover:border-[#02ca3a] cursor-pointer"
+      }`}
+    >
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <MdTableRestaurant className="text-[#ababab]" size={20} />
+          <h1 className="text-[#f5f5f5] text-lg font-bold">Table {name}</h1>
+        </div>
+        <span
+          className={`text-xs font-semibold px-2 py-1 rounded-full ${
+            isBooked ? "text-red-400 bg-[#4a2020]" : "text-green-400 bg-[#1f3d2b]"
+          }`}
+        >
+          {isBooked ? "Booked" : "Available"}
+        </span>
       </div>
-      <div className="flex items-center justify-center mt-5 mb-8">
-        <h1 className={`text-white rounded-full p-5 text-xl`} style={{backgroundColor : initials ? getBgColor() : "#1f1f1f"}} >{getAvatarName(initials) || "N/A"}</h1>
+
+      <div className="flex items-center justify-center my-5">
+        <div
+          className={`w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold ${
+            isBooked ? "bg-[#4a452e] text-yellow-300" : "bg-[#1f1f1f] text-[#5a5a5a]"
+          }`}
+        >
+          {getAvatarName(initials) || "—"}
+        </div>
       </div>
-      <p className="text-[#ababab] text-xs">Seats: <span className="text-[#f5f5f5]">{seats}</span></p>
+
+      <div className="flex items-center justify-between text-xs text-[#ababab]">
+        <span>
+          Seats: <span className="text-[#f5f5f5] font-semibold">{seats}</span>
+        </span>
+        {!isBooked && <span className="text-[#02ca3a] font-semibold">Tap to order →</span>}
+      </div>
     </div>
   );
 };

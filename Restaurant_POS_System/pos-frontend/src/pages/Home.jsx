@@ -5,6 +5,7 @@ import { BsCashCoin } from "react-icons/bs";
 import { GrInProgress } from "react-icons/gr";
 import AdminDashboard from "./AdminDashboard";
 import BottomNav from "../components/shared/BottomNav";
+import OrdersReport from "../components/orders/OrdersReport";
 import Greetings from "../components/home/Greetings";
 import MiniCard from "../components/home/MiniCard";
 import RecentOrders from "../components/home/RecentOrders";
@@ -53,6 +54,11 @@ const Home = () => {
             <p className="text-[#ababab] text-xs mb-1">Pending Orders</p>
             <p className="text-2xl font-bold text-orange-400">3</p>
           </div>
+        </div>
+
+        {/* Orders Report */}
+        <div className="mb-8">
+          <OrdersReport />
         </div>
 
         {/* Main Content */}

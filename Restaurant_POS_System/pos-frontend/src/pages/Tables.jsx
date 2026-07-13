@@ -98,19 +98,28 @@ const Tables = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-5 gap-3 px-16 py-4 h-[650px] overflow-y-scroll scrollbar-hide">
-        {filteredTables.map((table) => {
-          return (
-            <TableCard
-              key={table.id}
-              id={table.id}
-              name={table.tableNo}
-              status={table.status}
-              initials={table?.currentOrder?.customerDetails?.name || "-"}
-              seats={table.seats}
-            />
-          );
-        })}
+      <div className="px-10 py-4 h-[calc(100vh-13rem)] overflow-y-auto scrollbar-hide">
+        {filteredTables.length === 0 ? (
+          <div className="text-center text-[#ababab] py-16">
+            <p className="text-lg mb-2">No tables yet</p>
+            <p className="text-sm">Click “+ Add Table” to create your first table.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {filteredTables.map((table) => {
+              return (
+                <TableCard
+                  key={table.id}
+                  id={table.id}
+                  name={table.tableNo}
+                  status={table.status}
+                  initials={table?.currentOrder?.customerDetails?.name || "-"}
+                  seats={table.seats}
+                />
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Add Table Modal */}
