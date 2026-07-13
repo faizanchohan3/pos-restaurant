@@ -1,19 +1,16 @@
 import React, { useState, useEffect } from "react";
-import BottomNav from "../components/shared/BottomNav";
 import BackButton from "../components/shared/BackButton";
 import { enqueueSnackbar } from "notistack";
 import { FiTrash2, FiEdit2 } from "react-icons/fi";
 import { useSelector } from "react-redux";
 import { Navigate } from "react-router-dom";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://pos-backend-lime.vercel.app";
+
 const Categories = () => {
   const { user } = useSelector(state => state.user);
-  const [categories, setCategories] = useState([
-    { id: 1, name: "Appetizers", description: "Starters and snacks", shop_id: 1 },
-    { id: 2, name: "Main Course", description: "Main dishes", shop_id: 1 },
-    { id: 3, name: "Desserts", description: "Sweet dishes", shop_id: 1 },
-    { id: 4, name: "Beverages", description: "Drinks", shop_id: 1 },
-  ]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formData, setFormData] = useState({
@@ -21,9 +18,28 @@ const Categories = () => {
     description: "",
   });
 
+  const shopId = localStorage.getItem("selectedShop");
+
   useEffect(() => {
     document.title = "POS | Categories";
-  }, []);
+    if (shopId) {
+      fetchCategories();
+    }
+  }, [shopId]);
+
+  const fetchCategories = async () => {
+    setLoading(true);
+    try {
+      // TODO: Add API endpoint for fetching categories by shop_id
+      // For now, return empty array
+      setCategories([]);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      enqueueSnackbar("Failed to load categories", { variant: "error" });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (user?.role !== "Admin") {
     return <Navigate to="/" />;

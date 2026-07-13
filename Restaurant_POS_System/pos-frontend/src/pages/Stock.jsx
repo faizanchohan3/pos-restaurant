@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import BottomNav from "../components/shared/BottomNav";
 import BackButton from "../components/shared/BackButton";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { enqueueSnackbar } from "notistack";

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import BottomNav from "../components/shared/BottomNav";
 import BackButton from "../components/shared/BackButton";
 import { useSelector } from "react-redux";
 import { Navigate } from "react-router-dom";

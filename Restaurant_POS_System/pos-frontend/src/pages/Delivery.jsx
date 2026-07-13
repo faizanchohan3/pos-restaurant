@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import BottomNav from "../components/shared/BottomNav";
 import BackButton from "../components/shared/BackButton";
 import { enqueueSnackbar } from "notistack";
 import { FiMapPin, FiPhone, FiClock } from "react-icons/fi";
