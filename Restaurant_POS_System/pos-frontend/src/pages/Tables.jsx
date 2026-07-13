@@ -11,15 +11,16 @@ const Tables = () => {
   const [status, setStatus] = useState("all");
   const [showAddModal, setShowAddModal] = useState(false);
   const [formData, setFormData] = useState({ tableNo: "", seats: "" });
+  const shopId = localStorage.getItem("selectedShop");
 
   useEffect(() => {
     document.title = "POS | Tables"
   }, [])
 
   const { data: resData, isError, refetch } = useQuery({
-    queryKey: ["tables"],
+    queryKey: ["tables", shopId],
     queryFn: async () => {
-      return await getTables();
+      return await getTables(shopId);
     },
     placeholderData: keepPreviousData,
   });
@@ -48,7 +49,15 @@ const Tables = () => {
       enqueueSnackbar("Please fill all fields", { variant: "warning" });
       return;
     }
-    addTableMutation.mutate({ tableNo: parseInt(formData.tableNo), seats: parseInt(formData.seats) });
+    if (!shopId) {
+      enqueueSnackbar("No shop selected. Please log in again.", { variant: "error" });
+      return;
+    }
+    addTableMutation.mutate({
+      tableNo: parseInt(formData.tableNo),
+      seats: parseInt(formData.seats),
+      shopId: parseInt(shopId),
+    });
   };
 
   const tablesList = resData?.data?.data || [];

@@ -18,8 +18,16 @@ const Modal = ({ setIsTableModalOpen }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log(tableData);
-    tableMutation.mutate(tableData);
+    const shopId = localStorage.getItem("selectedShop");
+    if (!shopId) {
+      enqueueSnackbar("No shop selected. Please log in again.", { variant: "error" });
+      return;
+    }
+    tableMutation.mutate({
+      tableNo: parseInt(tableData.tableNo),
+      seats: parseInt(tableData.seats),
+      shopId: parseInt(shopId),
+    });
   };
 
   const handleCloseModal = () => {
