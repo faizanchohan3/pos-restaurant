@@ -12,6 +12,7 @@ import { useSelector, useDispatch } from "react-redux";
 import useLoadData from "./hooks/useLoadData";
 import FullScreenLoader from "./components/shared/FullScreenLoader"
 import ProtectedAdminRoute from "./components/ProtectedAdminRoute";
+import ProtectedRoleRoute from "./components/ProtectedRoleRoute";
 import { restoreUser } from "./redux/slices/userSlice";
 
 function Layout() {
@@ -122,17 +123,17 @@ function Layout() {
         <Route
           path="/expenses"
           element={
-            <ProtectedAdminRoute>
+            <ProtectedRoleRoute allowedRoles={["Admin", "Manager", "Cashier"]}>
               <Expenses />
-            </ProtectedAdminRoute>
+            </ProtectedRoleRoute>
           }
         />
         <Route
           path="/financial"
           element={
-            <ProtectedAdminRoute>
+            <ProtectedRoleRoute allowedRoles={["Admin", "Manager"]}>
               <Financial />
-            </ProtectedAdminRoute>
+            </ProtectedRoleRoute>
           }
         />
         <Route

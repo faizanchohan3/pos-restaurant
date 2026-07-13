@@ -1,15 +1,8 @@
 import React, { useState, useEffect } from "react";
 import BackButton from "../components/shared/BackButton";
-import { useSelector } from "react-redux";
-import { Navigate } from "react-router-dom";
 
 const Financial = () => {
-  const { user } = useSelector(state => state.user);
-
-  // Check if user is admin
-  if (user?.role !== "Admin") {
-    return <Navigate to="/" />;
-  }
+  // Access is enforced by the route guard (Admin, Manager)
   // Mock financial data
   const [financialData] = useState({
     // Revenue

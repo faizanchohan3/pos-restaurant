@@ -8,11 +8,26 @@ import Modal from "./Modal";
 import { useDispatch, useSelector } from "react-redux";
 import { setCustomer } from "../../redux/slices/customerSlice";
 
+// Items shown in the "More" menu, gated by role.
+// admin: true renders in the yellow "ADMIN ONLY" group.
+const MORE_MENU_ITEMS = [
+  { label: "🚚 Delivery Orders", route: "/delivery", roles: ["Admin"] },
+  { label: "📈 Dashboard", route: "/dashboard", roles: ["Admin"] },
+  { label: "🍽️ Menu", route: "/menu", roles: ["Admin"] },
+  { label: "💸 Expenses", route: "/expenses", roles: ["Admin", "Manager", "Cashier"] },
+  { label: "📊 Financial Report", route: "/financial", roles: ["Admin", "Manager"] },
+  { label: "🛍️ Products", route: "/products", roles: ["Admin"], admin: true },
+  { label: "📂 Categories", route: "/categories", roles: ["Admin"], admin: true },
+  { label: "📦 Stock Management", route: "/stock", roles: ["Admin"], admin: true },
+  { label: "👥 Manage Staff", route: "/staff-management", roles: ["Admin"], admin: true },
+  { label: "🏪 Shop Management", route: "/shop-management", roles: ["Admin"], admin: true },
+];
+
 const BottomNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
-  const { user } = useSelector(state => state.user);
+  const { user, role } = useSelector(state => state.user);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [guestCount, setGuestCount] = useState(0);
@@ -38,6 +53,12 @@ const BottomNav = () => {
     dispatch(setCustomer({name, phone, guests: guestCount}));
     navigate("/tables");
   }
+
+  // Menu items available to the current role
+  const currentRole = role || user?.role;
+  const visibleMenuItems = MORE_MENU_ITEMS.filter((item) =>
+    item.roles.includes(currentRole)
+  );
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-[#262626] p-2 h-16 flex justify-around">
@@ -65,138 +86,55 @@ const BottomNav = () => {
       >
         <MdTableBar className="inline mr-2" size={20} /> <p>Tables</p>
       </button>
-      <div className="relative w-[300px]">
-        <button
-          onClick={() => setShowMoreMenu(!showMoreMenu)}
-          className="flex items-center justify-center font-bold text-[#ababab] w-full hover:text-[#f5f5f5]"
-        >
-          <CiCircleMore className="inline mr-2" size={20} /> <p>More</p>
-        </button>
 
-        {showMoreMenu && (
-          <div className="absolute bottom-16 left-0 right-0 bg-[#343434] rounded-lg shadow-lg overflow-hidden border border-[#383838] max-h-72 overflow-y-auto">
-            {/* Non-Admin Items */}
-            <button
-              onClick={() => {
-                navigate("/delivery");
-                setShowMoreMenu(false);
-              }}
-              className={`w-full text-left px-4 py-2 font-semibold text-sm ${
-                isActive("/delivery") ? "text-[#f5f5f5] bg-[#383838]" : "text-[#ababab]"
-              } hover:bg-[#383838] hover:text-[#f5f5f5]`}
-            >
-              🚚 Delivery Orders
-            </button>
-            <button
-              onClick={() => {
-                navigate("/dashboard");
-                setShowMoreMenu(false);
-              }}
-              className={`w-full text-left px-4 py-2 font-semibold text-sm ${
-                isActive("/dashboard") ? "text-[#f5f5f5] bg-[#383838]" : "text-[#ababab]"
-              } hover:bg-[#383838] hover:text-[#f5f5f5]`}
-            >
-              📈 Dashboard
-            </button>
-            <button
-              onClick={() => {
-                navigate("/menu");
-                setShowMoreMenu(false);
-              }}
-              className={`w-full text-left px-4 py-2 font-semibold text-sm ${
-                isActive("/menu") ? "text-[#f5f5f5] bg-[#383838]" : "text-[#ababab]"
-              } hover:bg-[#383838] hover:text-[#f5f5f5]`}
-            >
-              🍽️ Menu
-            </button>
+      {/* "More" menu only shows when the current role has items available */}
+      {visibleMenuItems.length > 0 && (
+        <div className="relative w-[300px]">
+          <button
+            onClick={() => setShowMoreMenu(!showMoreMenu)}
+            className="flex items-center justify-center font-bold text-[#ababab] w-full hover:text-[#f5f5f5]"
+          >
+            <CiCircleMore className="inline mr-2" size={20} /> <p>More</p>
+          </button>
 
-            {/* Admin-Only Items */}
-            {user?.role === "Admin" && (
-              <>
-                <div className="border-t border-[#484848]"></div>
-                <p className="text-yellow-400 text-xs font-bold px-4 py-2">ADMIN ONLY</p>
-                <button
-                  onClick={() => {
-                    navigate("/products");
-                    setShowMoreMenu(false);
-                  }}
-                  className={`w-full text-left px-4 py-2 font-semibold text-sm ${
-                    isActive("/products") ? "text-[#f5f5f5] bg-[#383838]" : "text-yellow-400"
-                  } hover:bg-[#383838] hover:text-yellow-400`}
-                >
-                  🛍️ Products
-                </button>
-                <button
-                  onClick={() => {
-                    navigate("/categories");
-                    setShowMoreMenu(false);
-                  }}
-                  className={`w-full text-left px-4 py-2 font-semibold text-sm ${
-                    isActive("/categories") ? "text-[#f5f5f5] bg-[#383838]" : "text-yellow-400"
-                  } hover:bg-[#383838] hover:text-yellow-400`}
-                >
-                  📂 Categories
-                </button>
-                <button
-                  onClick={() => {
-                    navigate("/stock");
-                    setShowMoreMenu(false);
-                  }}
-                  className={`w-full text-left px-4 py-2 font-semibold text-sm ${
-                    isActive("/stock") ? "text-[#f5f5f5] bg-[#383838]" : "text-yellow-400"
-                  } hover:bg-[#383838] hover:text-yellow-400`}
-                >
-                  📦 Stock Management
-                </button>
-                <button
-                  onClick={() => {
-                    navigate("/staff-management");
-                    setShowMoreMenu(false);
-                  }}
-                  className={`w-full text-left px-4 py-2 font-semibold text-sm ${
-                    isActive("/staff-management") ? "text-[#f5f5f5] bg-[#383838]" : "text-yellow-400"
-                  } hover:bg-[#383838] hover:text-yellow-400`}
-                >
-                  👥 Manage Staff
-                </button>
-                <button
-                  onClick={() => {
-                    navigate("/expenses");
-                    setShowMoreMenu(false);
-                  }}
-                  className={`w-full text-left px-4 py-2 font-semibold text-sm ${
-                    isActive("/expenses") ? "text-[#f5f5f5] bg-[#383838]" : "text-yellow-400"
-                  } hover:bg-[#383838] hover:text-yellow-400`}
-                >
-                  💸 Expenses
-                </button>
-                <button
-                  onClick={() => {
-                    navigate("/financial");
-                    setShowMoreMenu(false);
-                  }}
-                  className={`w-full text-left px-4 py-2 font-semibold text-sm ${
-                    isActive("/financial") ? "text-[#f5f5f5] bg-[#383838]" : "text-yellow-400"
-                  } hover:bg-[#383838] hover:text-yellow-400`}
-                >
-                  📊 Financial Report
-                </button>
-                <button
-                  onClick={() => {
-                    navigate("/shop-management");
-                    setShowMoreMenu(false);
-                  }}
-                  className={`w-full text-left px-4 py-2 font-semibold text-sm ${
-                    isActive("/shop-management") ? "text-[#f5f5f5] bg-[#383838]" : "text-yellow-400"
-                  } hover:bg-[#383838] hover:text-yellow-400`}
-                >
-                  🏪 Shop Management
-                </button>
-              </>
-            )}
-          </div>
-        )}
-      </div>
+          {showMoreMenu && (
+            <div className="absolute bottom-16 left-0 right-0 bg-[#343434] rounded-lg shadow-lg overflow-hidden border border-[#383838] max-h-72 overflow-y-auto">
+              {visibleMenuItems.map((item, idx) => {
+                const isFirstAdmin =
+                  item.admin &&
+                  (idx === 0 || !visibleMenuItems[idx - 1].admin);
+                return (
+                  <React.Fragment key={item.route}>
+                    {isFirstAdmin && (
+                      <>
+                        <div className="border-t border-[#484848]"></div>
+                        <p className="text-yellow-400 text-xs font-bold px-4 py-2">
+                          ADMIN ONLY
+                        </p>
+                      </>
+                    )}
+                    <button
+                      onClick={() => {
+                        navigate(item.route);
+                        setShowMoreMenu(false);
+                      }}
+                      className={`w-full text-left px-4 py-2 font-semibold text-sm ${
+                        isActive(item.route)
+                          ? "text-[#f5f5f5] bg-[#383838]"
+                          : item.admin
+                          ? "text-yellow-400"
+                          : "text-[#ababab]"
+                      } hover:bg-[#383838] hover:text-[#f5f5f5]`}
+                    >
+                      {item.label}
+                    </button>
+                  </React.Fragment>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       <button
         disabled={isActive("/tables") || isActive("/menu")}
