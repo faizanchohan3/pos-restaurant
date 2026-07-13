@@ -643,6 +643,288 @@ app.put("/api/order/:id", async (req, res) => {
   }
 });
 
+// ==================== PRODUCT ROUTES ====================
+
+app.get("/api/products", async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({ success: false, message: "Database not connected" });
+    }
+
+    const shopId = req.query.shopId;
+    let query = 'SELECT * FROM "Product" ORDER BY id DESC';
+    let values = [];
+
+    if (shopId) {
+      query = 'SELECT * FROM "Product" WHERE "shopId" = $1 ORDER BY id DESC';
+      values = [parseInt(shopId)];
+    }
+
+    const result = await db.query(query, values);
+    res.status(200).json({ success: true, data: result.rows });
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.post("/api/products", async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({ success: false, message: "Database not connected" });
+    }
+
+    const { name, price, category, image, shopId } = req.body;
+
+    if (!name || !price || !shopId) {
+      return res.status(400).json({ success: false, message: "Name, price, and shop ID are required" });
+    }
+
+    const result = await db.query(
+      'INSERT INTO "Product" (name, price, category, image, "shopId", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, NOW(), NOW()) RETURNING *',
+      [name, price, category || '', image || '', parseInt(shopId)]
+    );
+
+    res.status(201).json({ success: true, message: "Product added!", data: result.rows[0] });
+  } catch (error) {
+    console.error("Error creating product:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.put("/api/products/:id", async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({ success: false, message: "Database not connected" });
+    }
+
+    const { name, price, category, image } = req.body;
+    const productId = parseInt(req.params.id);
+
+    const result = await db.query(
+      'UPDATE "Product" SET name = COALESCE($1, name), price = COALESCE($2, price), category = COALESCE($3, category), image = COALESCE($4, image), "updatedAt" = NOW() WHERE id = $5 RETURNING *',
+      [name || null, price || null, category || null, image || null, productId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: "Product not found" });
+    }
+
+    res.status(200).json({ success: true, message: "Product updated!", data: result.rows[0] });
+  } catch (error) {
+    console.error("Error updating product:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.delete("/api/products/:id", async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({ success: false, message: "Database not connected" });
+    }
+
+    const productId = parseInt(req.params.id);
+    const result = await db.query('DELETE FROM "Product" WHERE id = $1 RETURNING *', [productId]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: "Product not found" });
+    }
+
+    res.status(200).json({ success: true, message: "Product deleted!", data: result.rows[0] });
+  } catch (error) {
+    console.error("Error deleting product:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// ==================== CATEGORY ROUTES ====================
+
+app.get("/api/categories", async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({ success: false, message: "Database not connected" });
+    }
+
+    const shopId = req.query.shopId;
+    let query = 'SELECT * FROM "Category" ORDER BY id DESC';
+    let values = [];
+
+    if (shopId) {
+      query = 'SELECT * FROM "Category" WHERE "shopId" = $1 ORDER BY id DESC';
+      values = [parseInt(shopId)];
+    }
+
+    const result = await db.query(query, values);
+    res.status(200).json({ success: true, data: result.rows });
+  } catch (error) {
+    console.error("Error fetching categories:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.post("/api/categories", async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({ success: false, message: "Database not connected" });
+    }
+
+    const { name, shopId } = req.body;
+
+    if (!name || !shopId) {
+      return res.status(400).json({ success: false, message: "Name and shop ID are required" });
+    }
+
+    const result = await db.query(
+      'INSERT INTO "Category" (name, "shopId", "createdAt", "updatedAt") VALUES ($1, $2, NOW(), NOW()) RETURNING *',
+      [name, parseInt(shopId)]
+    );
+
+    res.status(201).json({ success: true, message: "Category added!", data: result.rows[0] });
+  } catch (error) {
+    console.error("Error creating category:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.put("/api/categories/:id", async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({ success: false, message: "Database not connected" });
+    }
+
+    const { name } = req.body;
+    const categoryId = parseInt(req.params.id);
+
+    const result = await db.query(
+      'UPDATE "Category" SET name = COALESCE($1, name), "updatedAt" = NOW() WHERE id = $2 RETURNING *',
+      [name || null, categoryId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: "Category not found" });
+    }
+
+    res.status(200).json({ success: true, message: "Category updated!", data: result.rows[0] });
+  } catch (error) {
+    console.error("Error updating category:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.delete("/api/categories/:id", async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({ success: false, message: "Database not connected" });
+    }
+
+    const categoryId = parseInt(req.params.id);
+    const result = await db.query('DELETE FROM "Category" WHERE id = $1 RETURNING *', [categoryId]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: "Category not found" });
+    }
+
+    res.status(200).json({ success: true, message: "Category deleted!", data: result.rows[0] });
+  } catch (error) {
+    console.error("Error deleting category:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// ==================== EXPENSE ROUTES (Custom Table) ====================
+
+app.get("/api/expenses", async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({ success: false, message: "Database not connected" });
+    }
+
+    const shopId = req.query.shopId;
+    let query = 'SELECT * FROM "Expense" ORDER BY "date" DESC';
+    let values = [];
+
+    if (shopId) {
+      query = 'SELECT * FROM "Expense" WHERE "shopId" = $1 ORDER BY "date" DESC';
+      values = [parseInt(shopId)];
+    }
+
+    const result = await db.query(query, values);
+    res.status(200).json({ success: true, data: result.rows });
+  } catch (error) {
+    console.error("Error fetching expenses:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.post("/api/expenses", async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({ success: false, message: "Database not connected" });
+    }
+
+    const { category, description, amount, date, shopId } = req.body;
+
+    if (!category || !amount || !shopId) {
+      return res.status(400).json({ success: false, message: "Category, amount, and shop ID are required" });
+    }
+
+    const result = await db.query(
+      'INSERT INTO "Expense" (category, description, amount, "date", "shopId", "createdAt") VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING *',
+      [category, description || '', amount, date || new Date().toISOString().split('T')[0], parseInt(shopId)]
+    );
+
+    res.status(201).json({ success: true, message: "Expense added!", data: result.rows[0] });
+  } catch (error) {
+    console.error("Error creating expense:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.put("/api/expenses/:id", async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({ success: false, message: "Database not connected" });
+    }
+
+    const { category, description, amount, date } = req.body;
+    const expenseId = parseInt(req.params.id);
+
+    const result = await db.query(
+      'UPDATE "Expense" SET category = COALESCE($1, category), description = COALESCE($2, description), amount = COALESCE($3, amount), "date" = COALESCE($4, "date") WHERE id = $5 RETURNING *',
+      [category || null, description || null, amount || null, date || null, expenseId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: "Expense not found" });
+    }
+
+    res.status(200).json({ success: true, message: "Expense updated!", data: result.rows[0] });
+  } catch (error) {
+    console.error("Error updating expense:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.delete("/api/expenses/:id", async (req, res) => {
+  try {
+    if (!db) {
+      return res.status(503).json({ success: false, message: "Database not connected" });
+    }
+
+    const expenseId = parseInt(req.params.id);
+    const result = await db.query('DELETE FROM "Expense" WHERE id = $1 RETURNING *', [expenseId]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: "Expense not found" });
+    }
+
+    res.status(200).json({ success: true, message: "Expense deleted!", data: result.rows[0] });
+  } catch (error) {
+    console.error("Error deleting expense:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // Global Error Handler
 app.use(globalErrorHandler);
 

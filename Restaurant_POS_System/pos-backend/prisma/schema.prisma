@@ -97,6 +97,16 @@ model SuperAdmin {
   updatedAt DateTime @updatedAt
 }
 
+model Expense {
+  id        Int     @id @default(autoincrement())
+  category  String
+  description String?
+  amount    Float
+  date      String
+  shopId    Int
+  createdAt DateTime @default(now())
+}
+
 model Shop {
   id        Int     @id @default(autoincrement())
   name      String
