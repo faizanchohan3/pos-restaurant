@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { FaCheckDouble, FaLongArrowAltRight } from "react-icons/fa";
 import { FaCircle } from "react-icons/fa";
-import { formatDateAndTime, getAvatarName, parseJSON } from "../../utils/index";
+import { formatDateAndTime, getAvatarName, parseJSON, parseItems } from "../../utils/index";
 import { updateOrderStatus } from "../../https/index";
 import { enqueueSnackbar } from "notistack";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -12,7 +12,7 @@ const OrderCard = ({ key, order }) => {
 
   const customer = parseJSON(order.customerDetails, {});
   const bills = parseJSON(order.bills, {});
-  const items = parseJSON(order.items, []);
+  const items = parseItems(order.items);
   const tableNo = order.tableNo ?? order.table?.tableNo ?? order.tableId ?? "-";
   const grandTotal = Number(bills.totalWithTax ?? bills.total ?? 0);
 

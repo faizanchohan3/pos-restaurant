@@ -272,6 +272,7 @@ app.post("/api/shop-login", async (req, res) => {
         name: shop.name,
         email: shop.email,
         phone: shop.phone,
+        address: shop.address,
         ownerName: shop.ownerName,
         role: "Admin"
       }
@@ -607,15 +608,18 @@ app.post("/api/order", async (req, res) => {
       return res.status(503).json({ success: false, message: "Database not connected" });
     }
 
-    const { customerDetails, orderStatus, bills, items, tableId, shopId, paymentMethod, paymentData, paymentStatus } = req.body;
+    const { customerDetails, orderStatus, bills, items, tableId, shopId, paymentMethod, paymentData, paymentStatus, note } = req.body;
 
     if (!shopId) {
       return res.status(400).json({ success: false, message: "Shop ID is required" });
     }
 
+    // Store JSON fields as strings (arrays/objects), so they read back as clean JSON.
+    const asJson = (v) => (v && typeof v === "object" ? JSON.stringify(v) : (v || ''));
+
     const result = await db.query(
-      'INSERT INTO "Order" ("customerDetails", "orderStatus", bills, items, "tableId", "shopId", "paymentMethod", "paymentData", "paymentStatus", "orderDate", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW(), NOW()) RETURNING *',
-      [customerDetails || '', orderStatus || 'pending', bills || '', items || '', tableId || null, shopId, paymentMethod || '', paymentData || '', paymentStatus || 'paid']
+      'INSERT INTO "Order" ("customerDetails", "orderStatus", bills, items, "tableId", "shopId", "paymentMethod", "paymentData", "paymentStatus", note, "orderDate", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW(), NOW()) RETURNING *',
+      [asJson(customerDetails), orderStatus || 'pending', asJson(bills), asJson(items), tableId || null, shopId, paymentMethod || '', asJson(paymentData), paymentStatus || 'paid', note || '']
     );
 
     res.status(201).json({ success: true, message: "Order created!", data: result.rows[0] });
@@ -1055,13 +1059,13 @@ app.get("/api/delivery", async (req, res) => {
 app.post("/api/delivery", async (req, res) => {
   try {
     if (!db) return res.status(503).json({ success: false, message: "Database not connected" });
-    const { customerName, phone, address, items, itemsData, total, status, shopId } = req.body;
+    const { customerName, phone, address, items, itemsData, total, status, shopId, note } = req.body;
     if (!customerName || !shopId) {
       return res.status(400).json({ success: false, message: "Customer name and shop ID are required" });
     }
     const result = await db.query(
-      'INSERT INTO "Delivery" ("customerName", phone, address, items, "itemsData", total, status, "shopId", "createdAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW()) RETURNING *',
-      [customerName, phone || '', address || '', items || 0, itemsData || '', total || 0, status || 'Pending', parseInt(shopId)]
+      'INSERT INTO "Delivery" ("customerName", phone, address, items, "itemsData", total, status, "shopId", note, "createdAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW()) RETURNING *',
+      [customerName, phone || '', address || '', items || 0, itemsData || '', total || 0, status || 'Pending', parseInt(shopId), note || '']
     );
     res.status(201).json({ success: true, message: "Delivery added!", data: result.rows[0] });
   } catch (error) {

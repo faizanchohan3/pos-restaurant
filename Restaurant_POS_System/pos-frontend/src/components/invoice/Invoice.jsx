@@ -53,8 +53,17 @@ const Invoice = ({ orderInfo, setShowInvoice }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
-      <div className="bg-white p-4 rounded-lg shadow-lg w-[400px]">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+      <div className="bg-white p-4 rounded-lg shadow-lg w-[400px] relative max-h-[92vh] overflow-y-auto">
+        {/* Close (X) */}
+        <button
+          onClick={() => setShowInvoice(false)}
+          className="absolute top-2 right-2 w-8 h-8 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 text-gray-700 text-lg font-bold"
+          title="Close"
+        >
+          ✕
+        </button>
+
         {/* Receipt Content for Printing */}
 
         <div ref={invoiceRef} className="p-4">
@@ -117,6 +126,11 @@ const Invoice = ({ orderInfo, setShowInvoice }) => {
             {customer.address ? null : (
               <p>
                 <strong>Guests:</strong> {customer.guests ?? 0}
+              </p>
+            )}
+            {orderInfo?.note && (
+              <p>
+                <strong>Note:</strong> {orderInfo.note}
               </p>
             )}
           </div>

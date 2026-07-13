@@ -1,11 +1,11 @@
 import React from "react";
 import { FaCheckDouble, FaLongArrowAltRight } from "react-icons/fa";
 import { FaCircle } from "react-icons/fa";
-import { getAvatarName, parseJSON } from "../../utils/index";
+import { getAvatarName, parseJSON, parseItems } from "../../utils/index";
 
 const OrderList = ({ key, order }) => {
   const customer = parseJSON(order.customerDetails, {});
-  const items = parseJSON(order.items, []);
+  const items = parseItems(order.items);
   const tableNo = order.tableNo ?? order.table?.tableNo ?? order.tableId ?? "-";
   return (
     <div className="flex items-center gap-5 mb-3">

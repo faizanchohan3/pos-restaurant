@@ -281,9 +281,6 @@ const Bill = () => {
       </div>
 
       <div className="flex items-center gap-3 px-5 mt-4">
-        <button className="bg-[#025cca] px-4 py-3 w-full rounded-lg text-[#f5f5f5] font-semibold text-lg">
-          Print Receipt
-        </button>
         <button
           onClick={handlePlaceOrder}
           className="bg-[#f6b100] px-4 py-3 w-full rounded-lg text-[#1f1f1f] font-semibold text-lg"

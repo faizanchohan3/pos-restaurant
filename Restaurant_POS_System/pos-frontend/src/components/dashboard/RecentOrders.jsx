@@ -4,7 +4,7 @@ import { GrUpdate } from "react-icons/gr";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { enqueueSnackbar } from "notistack";
 import { getOrders, updateOrderStatus } from "../../https/index";
-import { formatDateAndTime, parseJSON } from "../../utils";
+import { formatDateAndTime, parseJSON, parseItems } from "../../utils";
 
 const RecentOrders = () => {
   const queryClient = useQueryClient();
@@ -62,7 +62,7 @@ const RecentOrders = () => {
             {resData?.data.data.map((order, index) => {
               const customer = parseJSON(order.customerDetails, {});
               const bills = parseJSON(order.bills, {});
-              const items = parseJSON(order.items, []);
+              const items = parseItems(order.items);
               const tableNo = order.tableNo ?? order.table?.tableNo ?? order.tableId ?? "-";
               const grandTotal = Number(bills.totalWithTax ?? bills.total ?? 0);
               return (

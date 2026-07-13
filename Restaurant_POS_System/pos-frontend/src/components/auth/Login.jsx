@@ -79,6 +79,7 @@ const Login = () => {
         // Save shop_id for multi-tenant data isolation
         localStorage.setItem("selectedShop", shop.id);
         localStorage.setItem("shopSession", JSON.stringify({ id: shop.id, name: shop.name, email: shop.email }));
+        localStorage.setItem("shopDetails", JSON.stringify({ name: shop.name, address: shop.address || "", phone: shop.phone || "", email: shop.email || "", ownerName: shop.ownerName || "" }));
         // Also set user in Redux for authentication
         dispatch(setUser({ _id: shop.id, name: shop.name, email: shop.email, phone: shop.phone, role: "Admin" }));
         enqueueSnackbar(`Welcome ${shop.name}! Redirecting to dashboard...`, { variant: "success" });

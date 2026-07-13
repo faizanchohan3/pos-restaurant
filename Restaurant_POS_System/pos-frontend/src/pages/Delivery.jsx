@@ -22,6 +22,7 @@ const Delivery = () => {
   const [selectedId, setSelectedId] = useState("new");
   const [cust, setCust] = useState({ name: "", phone: "", address: "" });
   const [cart, setCart] = useState({}); // { productId: { ...product, qty } }
+  const [note, setNote] = useState("");
 
   // invoice
   const [printOrder, setPrintOrder] = useState(null);
@@ -66,6 +67,7 @@ const Delivery = () => {
     setSelectedId("new");
     setCust({ name: "", phone: "", address: "" });
     setCart({});
+    setNote("");
     setShowAddModal(true);
   };
 
@@ -148,6 +150,7 @@ const Delivery = () => {
           itemsData,
           total: grandTotal,
           status: "Pending",
+          note: note.trim(),
           shopId: parseInt(shopId),
         }),
       });
@@ -178,6 +181,7 @@ const Delivery = () => {
       bills: parsed.bills || { total: order.total, tax: 0, totalWithTax: order.total },
       items: parsed.items || [],
       paymentMethod: "Delivery (COD)",
+      note: order.note || "",
     });
     setShowInvoice(true);
   };
@@ -246,15 +250,16 @@ const Delivery = () => {
           <td class="center">${o.items}</td>
           <td class="right">PKR ${(Number(o.total) || 0).toFixed(2)}</td>
           <td>${o.status}</td>
+          <td>${o.note || ""}</td>
           <td>${o.createdAt ? new Date(o.createdAt).toLocaleString() : ""}</td>
         </tr>`;
       })
       .join("");
     const table = `
       <table>
-        <thead><tr><th>#</th><th>Customer</th><th>Phone</th><th>Address</th><th class="center">Items</th><th class="right">Total</th><th>Status</th><th>Date</th></tr></thead>
-        <tbody>${rows || '<tr><td colspan="8" class="center">No deliveries</td></tr>'}</tbody>
-        <tfoot><tr><td colspan="5">Total deliveries: ${filteredDeliveries.length}</td><td class="right">PKR ${revenue.toFixed(2)}</td><td colspan="2"></td></tr></tfoot>
+        <thead><tr><th>#</th><th>Customer</th><th>Phone</th><th>Address</th><th class="center">Items</th><th class="right">Total</th><th>Status</th><th>Note</th><th>Date</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="9" class="center">No deliveries</td></tr>'}</tbody>
+        <tfoot><tr><td colspan="5">Total deliveries: ${filteredDeliveries.length}</td><td class="right">PKR ${revenue.toFixed(2)}</td><td colspan="3"></td></tr></tfoot>
       </table>`;
     printReport(
       `${shopName} — Delivery Report`,
@@ -329,6 +334,9 @@ const Delivery = () => {
                       <FiMapPin size={14} />
                       <span>{order.address}</span>
                     </div>
+                    {order.note && (
+                      <p className="text-yellow-300/80 text-xs mt-1 italic">📝 {order.note}</p>
+                    )}
                   </div>
                   <div className="text-right">
                     <p className="text-yellow-400 font-bold text-xl">PKR {Number(order.total).toFixed(2)}</p>
@@ -420,7 +428,13 @@ const Delivery = () => {
                     value={cust.address}
                     onChange={(e) => setCust({ ...cust, address: e.target.value })}
                     placeholder="Delivery address *"
-                    className="w-full bg-[#1f1f1f] text-white px-3 py-2 rounded-lg border border-[#383838] text-sm h-20 resize-none"
+                    className="w-full bg-[#1f1f1f] text-white px-3 py-2 rounded-lg border border-[#383838] text-sm h-16 resize-none mb-3"
+                  />
+                  <textarea
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder="Order note (e.g. no onions, ring bell) — optional"
+                    className="w-full bg-[#1f1f1f] text-white px-3 py-2 rounded-lg border border-[#383838] text-sm h-16 resize-none"
                   />
 
                   {/* Cart summary */}

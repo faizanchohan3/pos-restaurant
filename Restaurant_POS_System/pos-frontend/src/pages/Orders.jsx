@@ -14,7 +14,7 @@ import {
   deleteLedgerEntry,
 } from "../https/index";
 import { enqueueSnackbar } from "notistack";
-import { formatDateAndTime, parseJSON, printReport } from "../utils";
+import { formatDateAndTime, parseJSON, parseItems, printReport } from "../utils";
 import { FaPrint } from "react-icons/fa";
 
 const STATUS_OPTIONS = ["In Progress", "Ready", "Delivered", "Completed"];
@@ -185,7 +185,7 @@ const Orders = () => {
       .map((o) => {
         const customer = parseJSON(o.customerDetails, {});
         const bills = parseJSON(o.bills, {});
-        const items = parseJSON(o.items, []);
+        const items = parseItems(o.items);
         const total = Number(bills.totalWithTax ?? bills.total ?? 0);
         revenue += total;
         return `
@@ -223,7 +223,7 @@ const Orders = () => {
       ...order,
       customerDetails: parseJSON(order.customerDetails, {}),
       bills: parseJSON(order.bills, {}),
-      items: parseJSON(order.items, []),
+      items: parseItems(order.items),
       paymentData: parseJSON(order.paymentData, {}),
     });
     setShowInvoice(true);
@@ -300,7 +300,7 @@ const Orders = () => {
                 filtered.map((order, idx) => {
                   const customer = parseJSON(order.customerDetails, {});
                   const bills = parseJSON(order.bills, {});
-                  const items = parseJSON(order.items, []);
+                  const items = parseItems(order.items);
                   const total = Number(bills.totalWithTax ?? bills.total ?? 0);
                   const tableNo = order.tableNo ?? order.tableId ?? "-";
                   return (

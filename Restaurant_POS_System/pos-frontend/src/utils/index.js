@@ -16,18 +16,41 @@ export const getBgColor = () => {
   return color;
 };
 
-// Open a print window with a styled report (title, optional subtitle, and
-// inner HTML — usually a <table>). Used for Stock / Orders reports.
+// Read the logged-in shop's details (saved at login) for report/receipt headers.
+export const getShopDetails = () => {
+  try {
+    return JSON.parse(localStorage.getItem("shopDetails")) || {};
+  } catch {
+    return {};
+  }
+};
+
+// Open a print window with a professional restaurant header + styled report.
+// (title, optional subtitle, inner HTML — usually a <table>.)
 export const printReport = (title, subtitle, innerHtml) => {
   const win = window.open("", "", "width=1000,height=700");
-  if (!win) return;
+  if (!win) {
+    alert("Please allow pop-ups for this site to print.");
+    return;
+  }
+  const shop = getShopDetails();
+  const header = `
+    <div class="shop">
+      <h1 class="shop-name">${shop.name || "Restaurant"}</h1>
+      ${shop.address ? `<p>${shop.address}</p>` : ""}
+      <p>${[shop.phone ? `Tel: ${shop.phone}` : "", shop.email || ""].filter(Boolean).join(" &middot; ")}</p>
+      ${shop.ownerName ? `<p>Owner: ${shop.ownerName}</p>` : ""}
+    </div>`;
   win.document.write(`
     <html>
       <head>
         <title>${title}</title>
         <style>
           body { font-family: Arial, sans-serif; padding: 24px; color: #111; }
-          h1 { font-size: 20px; margin: 0 0 4px; }
+          .shop { text-align: center; border-bottom: 2px solid #222; padding-bottom: 10px; margin-bottom: 14px; }
+          .shop-name { font-size: 22px; margin: 0 0 4px; text-transform: uppercase; letter-spacing: 1px; }
+          .shop p { margin: 2px 0; font-size: 12px; color: #444; }
+          h2 { font-size: 16px; margin: 0 0 4px; }
           .meta { color: #555; font-size: 12px; margin-bottom: 16px; }
           table { width: 100%; border-collapse: collapse; font-size: 12px; }
           th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; }
@@ -38,7 +61,8 @@ export const printReport = (title, subtitle, innerHtml) => {
         </style>
       </head>
       <body>
-        <h1>${title}</h1>
+        ${header}
+        <h2>${title}</h2>
         <div class="meta">${subtitle || ""} &middot; Printed ${new Date().toLocaleString()}</div>
         ${innerHtml}
       </body>
@@ -46,10 +70,38 @@ export const printReport = (title, subtitle, innerHtml) => {
   `);
   win.document.close();
   win.focus();
-  setTimeout(() => {
-    win.print();
-    win.close();
-  }, 500);
+  // Print once the content is ready, and close only after the print dialog
+  // is dismissed (so the window doesn't vanish before the user can print).
+  win.onafterprint = () => win.close();
+  setTimeout(() => win.print(), 400);
+};
+
+// Tolerant parser for order items. New orders store clean JSON arrays; some old
+// rows were saved as Postgres array literals ({"{...}","{...}"}). Handle both.
+export const parseItems = (raw) => {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw !== "string") return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed;
+    if (parsed && typeof parsed === "object") return [parsed];
+  } catch {
+    // fall through to Postgres-array recovery
+  }
+  const items = [];
+  const unescaped = raw.replace(/\\"/g, '"');
+  const matches = unescaped.match(/\{[^{}]*\}/g);
+  if (matches) {
+    for (const m of matches) {
+      try {
+        items.push(JSON.parse(m));
+      } catch {
+        // skip
+      }
+    }
+  }
+  return items;
 };
 
 // Order JSON fields (customerDetails, bills, items) are stored as strings in
