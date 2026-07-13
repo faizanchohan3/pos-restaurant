@@ -99,6 +99,8 @@ const Bill = () => {
               },
               items: cartData,
               table: customerData.table.tableId,
+              tableId: customerData.table.tableId,
+              shopId: parseInt(localStorage.getItem("selectedShop")),
               paymentMethod: paymentMethod,
               paymentData: {
                 razorpay_order_id: response.razorpay_order_id,
@@ -142,8 +144,14 @@ const Bill = () => {
         },
         items: cartData,
         table: customerData.table.tableId,
+        tableId: customerData.table.tableId,
+        shopId: parseInt(localStorage.getItem("selectedShop")),
         paymentMethod: paymentMethod,
       };
+      if (!orderData.shopId) {
+        enqueueSnackbar("No shop selected. Please log in again.", { variant: "error" });
+        return;
+      }
       orderMutation.mutate(orderData);
     }
   };

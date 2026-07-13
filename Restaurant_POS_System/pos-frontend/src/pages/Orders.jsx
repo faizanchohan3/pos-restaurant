@@ -14,10 +14,12 @@ const Orders = () => {
       document.title = "POS | Orders"
     }, [])
 
+  const shopId = localStorage.getItem("selectedShop");
+
   const { data: resData, isError } = useQuery({
-    queryKey: ["orders"],
+    queryKey: ["orders", shopId],
     queryFn: async () => {
-      return await getOrders();
+      return await getOrders(shopId);
     },
     placeholderData: keepPreviousData
   })
