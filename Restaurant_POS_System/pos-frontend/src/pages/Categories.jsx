@@ -2,13 +2,10 @@ import React, { useState, useEffect } from "react";
 import BackButton from "../components/shared/BackButton";
 import { enqueueSnackbar } from "notistack";
 import { FiTrash2, FiEdit2 } from "react-icons/fi";
-import { useSelector } from "react-redux";
-import { Navigate } from "react-router-dom";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://pos-backend-lime.vercel.app";
 
 const Categories = () => {
-  const { user } = useSelector(state => state.user);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -40,10 +37,6 @@ const Categories = () => {
       setLoading(false);
     }
   };
-
-  if (user?.role !== "Admin") {
-    return <Navigate to="/" />;
-  }
 
   const handleAddCategory = async (e) => {
     e.preventDefault();

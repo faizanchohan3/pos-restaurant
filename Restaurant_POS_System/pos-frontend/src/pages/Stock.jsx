@@ -2,13 +2,10 @@ import React, { useState, useEffect } from "react";
 import BackButton from "../components/shared/BackButton";
 import { enqueueSnackbar } from "notistack";
 import { FiPlus, FiMinus, FiTrash2 } from "react-icons/fi";
-import { useSelector } from "react-redux";
-import { Navigate } from "react-router-dom";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://pos-backend-lime.vercel.app";
 
 const Stock = () => {
-  const { user } = useSelector(state => state.user);
   const shopId = localStorage.getItem("selectedShop");
 
   const [stockItems, setStockItems] = useState([]);
@@ -34,10 +31,6 @@ const Stock = () => {
       setLoading(false);
     }
   };
-
-  if (user?.role !== "Admin") {
-    return <Navigate to="/" />;
-  }
 
   const handleAddStock = async (e) => {
     e.preventDefault();
