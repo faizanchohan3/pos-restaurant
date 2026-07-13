@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from "react";
 import BackButton from "../components/shared/BackButton";
 import { enqueueSnackbar } from "notistack";
-import { FiEdit2, FiTrash2, FiPlus } from "react-icons/fi";
+import { FiEdit2, FiTrash2, FiPlus, FiBook } from "react-icons/fi";
 import {
   getCustomers,
   addCustomer,
   updateCustomer,
   deleteCustomer,
+  getLedger,
+  addLedgerEntry,
+  deleteLedgerEntry,
 } from "../https";
+
+const money = (n) => `PKR ${Number(n || 0).toFixed(2)}`;
 
 const Customers = () => {
   const shopId = localStorage.getItem("selectedShop");
@@ -18,9 +23,15 @@ const Customers = () => {
   const [search, setSearch] = useState("");
   const [form, setForm] = useState({ name: "", phone: "", email: "", address: "" });
 
+  // Ledger
+  const [ledger, setLedger] = useState([]); // all entries for shop
+  const [ledgerCustomer, setLedgerCustomer] = useState(null);
+  const [ledgerForm, setLedgerForm] = useState({ type: "credit", amount: "", description: "" });
+
   useEffect(() => {
     document.title = "POS | Customers";
     fetchCustomers();
+    fetchLedger();
   }, []);
 
   const fetchCustomers = async () => {
@@ -35,6 +46,67 @@ const Customers = () => {
       setLoading(false);
     }
   };
+
+  const fetchLedger = async () => {
+    if (!shopId) return;
+    try {
+      const res = await getLedger(shopId);
+      if (res.data.success) setLedger(res.data.data);
+    } catch {
+      // ignore
+    }
+  };
+
+  // balance = debits (owed) - credits (paid). Positive = customer owes you.
+  const balanceFor = (customerId) =>
+    ledger
+      .filter((e) => String(e.customerId) === String(customerId))
+      .reduce((sum, e) => sum + (e.type === "debit" ? 1 : -1) * Number(e.amount || 0), 0);
+
+  const openLedger = (customer) => {
+    setLedgerCustomer(customer);
+    setLedgerForm({ type: "credit", amount: "", description: "" });
+  };
+
+  const handleAddLedger = async (e) => {
+    e.preventDefault();
+    const amt = parseFloat(ledgerForm.amount);
+    if (!amt || amt <= 0) {
+      enqueueSnackbar("Enter a valid amount", { variant: "warning" });
+      return;
+    }
+    try {
+      const res = await addLedgerEntry({
+        shopId: parseInt(shopId),
+        customerId: ledgerCustomer.id,
+        customerName: ledgerCustomer.name,
+        type: ledgerForm.type,
+        amount: amt,
+        description:
+          ledgerForm.description || (ledgerForm.type === "credit" ? "Payment received" : "Charge"),
+      });
+      if (res.data.success) {
+        enqueueSnackbar("Ledger updated!", { variant: "success" });
+        setLedgerForm({ type: "credit", amount: "", description: "" });
+        fetchLedger();
+      }
+    } catch {
+      enqueueSnackbar("Failed to update ledger", { variant: "error" });
+    }
+  };
+
+  const handleDeleteLedger = async (id) => {
+    try {
+      const res = await deleteLedgerEntry(id);
+      if (res.data.success) fetchLedger();
+    } catch {
+      enqueueSnackbar("Failed to delete entry", { variant: "error" });
+    }
+  };
+
+  const customerLedger = ledgerCustomer
+    ? ledger.filter((e) => String(e.customerId) === String(ledgerCustomer.id))
+    : [];
 
   const openModal = (customer = null) => {
     if (customer) {
@@ -164,7 +236,17 @@ const Customers = () => {
                 className="bg-[#2a2a2a] border border-[#383838] rounded-lg p-6 hover:border-yellow-500 transition flex justify-between items-start"
               >
                 <div className="flex-1">
-                  <h3 className="text-xl font-bold text-[#f5f5f5] mb-2">{c.name}</h3>
+                  <div className="flex items-center gap-3 mb-2">
+                    <h3 className="text-xl font-bold text-[#f5f5f5]">{c.name}</h3>
+                    {(() => {
+                      const bal = balanceFor(c.id);
+                      if (bal > 0)
+                        return <span className="text-xs font-bold px-2 py-1 rounded-full text-red-400 bg-[#4a2020]">Owes {money(bal)}</span>;
+                      if (bal < 0)
+                        return <span className="text-xs font-bold px-2 py-1 rounded-full text-green-400 bg-[#1f3d2b]">Advance {money(-bal)}</span>;
+                      return <span className="text-xs font-bold px-2 py-1 rounded-full text-[#ababab] bg-[#333]">Settled</span>;
+                    })()}
+                  </div>
                   <div className="grid grid-cols-3 gap-4 text-sm">
                     <p className="text-[#ababab]">📱 <span className="text-white">{c.phone || "-"}</span></p>
                     <p className="text-[#ababab]">📧 <span className="text-white">{c.email || "-"}</span></p>
@@ -172,6 +254,13 @@ const Customers = () => {
                   </div>
                 </div>
                 <div className="flex gap-2 ml-4">
+                  <button
+                    onClick={() => openLedger(c)}
+                    title="Ledger"
+                    className="bg-[#4a452e] hover:bg-[#5a5540] text-yellow-300 font-bold py-2 px-4 rounded-lg transition"
+                  >
+                    <FiBook size={18} />
+                  </button>
                   <button
                     onClick={() => openModal(c)}
                     className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition"
@@ -251,6 +340,101 @@ const Customers = () => {
                     className="flex-1 bg-yellow-500 hover:bg-yellow-600 disabled:opacity-50 text-gray-900 font-bold py-2 px-4 rounded-lg transition"
                   >
                     {loading ? "Saving..." : editing ? "Update" : "Add Customer"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Ledger Modal */}
+        {ledgerCustomer && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-[#2a2a2a] rounded-lg w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col border border-[#383838]">
+              <div className="flex items-center justify-between p-5 border-b border-[#383838]">
+                <div>
+                  <h2 className="text-xl font-bold text-[#f5f5f5]">
+                    🧾 {ledgerCustomer.name} — Ledger
+                  </h2>
+                  {(() => {
+                    const bal = balanceFor(ledgerCustomer.id);
+                    return (
+                      <p className={`text-sm font-semibold ${bal > 0 ? "text-red-400" : bal < 0 ? "text-green-400" : "text-[#ababab]"}`}>
+                        {bal > 0 ? `Owes you ${money(bal)}` : bal < 0 ? `Advance ${money(-bal)}` : "Settled"}
+                      </p>
+                    );
+                  })()}
+                </div>
+                <button onClick={() => setLedgerCustomer(null)} className="text-[#ababab] hover:text-white text-xl">✕</button>
+              </div>
+
+              {/* Entries */}
+              <div className="flex-1 overflow-y-auto p-5">
+                {customerLedger.length === 0 ? (
+                  <p className="text-[#ababab] text-sm text-center py-6">No ledger entries yet.</p>
+                ) : (
+                  <table className="w-full text-sm">
+                    <thead className="text-[#ababab] text-xs">
+                      <tr>
+                        <th className="text-left pb-2">Date</th>
+                        <th className="text-left pb-2">Description</th>
+                        <th className="text-right pb-2">Debit</th>
+                        <th className="text-right pb-2">Credit</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {customerLedger.map((e) => (
+                        <tr key={e.id} className="border-t border-[#383838] text-[#f5f5f5]">
+                          <td className="py-2 text-xs text-[#ababab]">{new Date(e.createdAt).toLocaleDateString()}</td>
+                          <td className="py-2">{e.description}</td>
+                          <td className="py-2 text-right text-red-400">{e.type === "debit" ? money(e.amount) : "-"}</td>
+                          <td className="py-2 text-right text-green-400">{e.type === "credit" ? money(e.amount) : "-"}</td>
+                          <td className="py-2 text-right">
+                            <button onClick={() => handleDeleteLedger(e.id)} className="text-[#ababab] hover:text-red-400"><FiTrash2 size={14} /></button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+
+              {/* Add entry */}
+              <form onSubmit={handleAddLedger} className="p-5 border-t border-[#383838] space-y-3">
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setLedgerForm({ ...ledgerForm, type: "credit" })}
+                    className={`flex-1 py-2 rounded-lg text-sm font-semibold ${ledgerForm.type === "credit" ? "bg-green-700 text-white" : "bg-[#1f1f1f] text-[#ababab]"}`}
+                  >
+                    Payment Received (Credit)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLedgerForm({ ...ledgerForm, type: "debit" })}
+                    className={`flex-1 py-2 rounded-lg text-sm font-semibold ${ledgerForm.type === "debit" ? "bg-red-700 text-white" : "bg-[#1f1f1f] text-[#ababab]"}`}
+                  >
+                    Charge (Debit)
+                  </button>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    value={ledgerForm.amount}
+                    onChange={(e) => setLedgerForm({ ...ledgerForm, amount: e.target.value })}
+                    placeholder="Amount"
+                    className="w-32 bg-[#1f1f1f] text-white px-3 py-2 rounded-lg border border-[#383838] text-sm"
+                  />
+                  <input
+                    type="text"
+                    value={ledgerForm.description}
+                    onChange={(e) => setLedgerForm({ ...ledgerForm, description: e.target.value })}
+                    placeholder="Note (optional)"
+                    className="flex-1 bg-[#1f1f1f] text-white px-3 py-2 rounded-lg border border-[#383838] text-sm"
+                  />
+                  <button type="submit" className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-bold px-4 rounded-lg text-sm">
+                    Add
                   </button>
                 </div>
               </form>

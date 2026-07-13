@@ -43,6 +43,14 @@ export const updateCustomer = ({ customerId, ...data }) =>
 export const deleteCustomer = (customerId) =>
   axiosWrapper.delete(`/api/customers/${customerId}`);
 
+// Ledger (customer debit/credit) Endpoints
+export const getLedger = (shopId, customerId) =>
+  axiosWrapper.get(
+    `/api/ledger?shopId=${shopId}${customerId ? `&customerId=${customerId}` : ""}`
+  );
+export const addLedgerEntry = (data) => axiosWrapper.post("/api/ledger", data);
+export const deleteLedgerEntry = (id) => axiosWrapper.delete(`/api/ledger/${id}`);
+
 // Shop Management Endpoints
 export const createShop = (data) => axiosWrapper.post("/api/shop/register", data);
 export const getAllShops = () => axiosWrapper.get("/api/shop");

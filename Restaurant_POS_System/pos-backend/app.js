@@ -668,7 +668,16 @@ app.put("/api/order/:id", async (req, res) => {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
 
-    res.status(200).json({ success: true, message: "Order updated!", data: result.rows[0] });
+    // Free the table once the order is finished
+    const order = result.rows[0];
+    if (order.tableId && (orderStatus === "Completed" || orderStatus === "Cancelled")) {
+      await db.query(
+        'UPDATE "Table" SET status = \'Available\', "currentOrder" = NULL WHERE id = $1',
+        [order.tableId]
+      );
+    }
+
+    res.status(200).json({ success: true, message: "Order updated!", data: order });
   } catch (error) {
     console.error("Error updating order:", error);
     res.status(500).json({ success: false, message: error.message });
@@ -1151,6 +1160,59 @@ app.delete("/api/customers/:id", async (req, res) => {
     res.status(200).json({ success: true, message: "Customer deleted!", data: result.rows[0] });
   } catch (error) {
     console.error("Error deleting customer:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// ==================== LEDGER ROUTES ====================
+
+app.get("/api/ledger", async (req, res) => {
+  try {
+    if (!db) return res.status(503).json({ success: false, message: "Database not connected" });
+    const { shopId, customerId } = req.query;
+    let query = 'SELECT * FROM "Ledger" ORDER BY "createdAt" ASC';
+    let values = [];
+    if (shopId && customerId) {
+      query = 'SELECT * FROM "Ledger" WHERE "shopId" = $1 AND "customerId" = $2 ORDER BY "createdAt" ASC';
+      values = [parseInt(shopId), parseInt(customerId)];
+    } else if (shopId) {
+      query = 'SELECT * FROM "Ledger" WHERE "shopId" = $1 ORDER BY "createdAt" ASC';
+      values = [parseInt(shopId)];
+    }
+    const result = await db.query(query, values);
+    res.status(200).json({ success: true, data: result.rows });
+  } catch (error) {
+    console.error("Error fetching ledger:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.post("/api/ledger", async (req, res) => {
+  try {
+    if (!db) return res.status(503).json({ success: false, message: "Database not connected" });
+    const { shopId, customerId, customerName, type, amount, description, orderId } = req.body;
+    if (!shopId || !type || amount === undefined) {
+      return res.status(400).json({ success: false, message: "shopId, type and amount are required" });
+    }
+    const result = await db.query(
+      'INSERT INTO "Ledger" ("shopId", "customerId", "customerName", type, amount, description, "orderId", "createdAt") VALUES ($1, $2, $3, $4, $5, $6, $7, NOW()) RETURNING *',
+      [parseInt(shopId), customerId ? parseInt(customerId) : null, customerName || '', type, parseFloat(amount) || 0, description || '', orderId ? parseInt(orderId) : null]
+    );
+    res.status(201).json({ success: true, message: "Ledger entry added!", data: result.rows[0] });
+  } catch (error) {
+    console.error("Error creating ledger entry:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.delete("/api/ledger/:id", async (req, res) => {
+  try {
+    if (!db) return res.status(503).json({ success: false, message: "Database not connected" });
+    const result = await db.query('DELETE FROM "Ledger" WHERE id = $1 RETURNING *', [parseInt(req.params.id)]);
+    if (result.rows.length === 0) return res.status(404).json({ success: false, message: "Entry not found" });
+    res.status(200).json({ success: true, message: "Entry deleted!", data: result.rows[0] });
+  } catch (error) {
+    console.error("Error deleting ledger entry:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 });

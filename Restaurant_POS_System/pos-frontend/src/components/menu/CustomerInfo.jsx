@@ -27,8 +27,8 @@ const CustomerInfo = () => {
 
   const guests = customerData.guests || 0;
 
-  const applyCustomer = (custName, custPhone) => {
-    dispatch(setCustomer({ name: custName, phone: custPhone, guests }));
+  const applyCustomer = (custName, custPhone, customerId = null) => {
+    dispatch(setCustomer({ name: custName, phone: custPhone, guests, customerId }));
   };
 
   const handleSelect = (value) => {
@@ -41,7 +41,7 @@ const CustomerInfo = () => {
       applyCustomer("", "");
     } else {
       const c = customers.find((x) => String(x.id) === String(value));
-      if (c) applyCustomer(c.name, c.phone || "");
+      if (c) applyCustomer(c.name, c.phone || "", c.id);
     }
   };
 
@@ -61,6 +61,7 @@ const CustomerInfo = () => {
         if (res.data.success) {
           setCustomers((prev) => [...prev, res.data.data]);
           setSelectedId(String(res.data.data.id));
+          applyCustomer(res.data.data.name, res.data.data.phone || "", res.data.data.id);
           enqueueSnackbar("Customer saved!", { variant: "success" });
         }
       }

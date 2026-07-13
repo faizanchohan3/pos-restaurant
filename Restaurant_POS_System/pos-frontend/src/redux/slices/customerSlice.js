@@ -2,6 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
     orderId: "",
+    customerId: null,
     customerName: "",
     customerPhone: "",
     guests: 0,
@@ -14,14 +15,16 @@ const customerSlice = createSlice({
     initialState,
     reducers : {
         setCustomer: (state, action) => {
-            const { name, phone, guests } = action.payload;
+            const { name, phone, guests, customerId } = action.payload;
             state.orderId = `${Date.now()}`;
+            state.customerId = customerId ?? null;
             state.customerName = name;
             state.customerPhone = phone;
             state.guests = guests;
         },
 
         removeCustomer: (state) => {
+            state.customerId = null;
             state.customerName = "";
             state.customerPhone = "";
             state.guests = 0;

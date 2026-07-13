@@ -6,6 +6,7 @@ import {
   createOrderRazorpay,
   updateTable,
   verifyPaymentRazorpay,
+  addLedgerEntry,
 } from "../../https/index";
 import { enqueueSnackbar } from "notistack";
 import { useMutation } from "@tanstack/react-query";
@@ -171,6 +172,24 @@ const Bill = () => {
         items: parseJSON(data.items, []),
       });
 
+      // Pay Later -> record a debit on the customer's ledger
+      if (paymentMethod === "Pay Later") {
+        const shopId = localStorage.getItem("selectedShop");
+        addLedgerEntry({
+          shopId: parseInt(shopId),
+          customerId: customerData.customerId || null,
+          customerName: customerData.customerName || "Walk-in Customer",
+          type: "debit",
+          amount: totalPriceWithTax,
+          description: `Order #${data.id} (unpaid)`,
+          orderId: data.id,
+        })
+          .then(() =>
+            enqueueSnackbar("Added to customer's ledger", { variant: "info" })
+          )
+          .catch(() => {});
+      }
+
       // Update Table (backend returns id / tableId, not _id / table)
       const tableData = {
         status: "Booked",
@@ -244,6 +263,16 @@ const Bill = () => {
           }`}
         >
           Online
+        </button>
+      </div>
+      <div className="px-5 mt-3">
+        <button
+          onClick={() => setPaymentMethod("Pay Later")}
+          className={`bg-[#1f1f1f] px-4 py-3 w-full rounded-lg font-semibold ${
+            paymentMethod === "Pay Later" ? "bg-[#4a452e] text-yellow-300" : "text-[#ababab]"
+          }`}
+        >
+          🧾 Pay Later (Add to Ledger)
         </button>
       </div>
 

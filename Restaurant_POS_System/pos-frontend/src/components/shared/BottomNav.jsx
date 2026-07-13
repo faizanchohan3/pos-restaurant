@@ -75,6 +75,7 @@ const BottomNav = () => {
     const shopId = localStorage.getItem("selectedShop");
     let custName = "Walk-in Customer";
     let custPhone = "";
+    let custId = null;
 
     if (selectedCustomerId === "walkin") {
       custName = name.trim() || "Walk-in Customer";
@@ -89,7 +90,8 @@ const BottomNav = () => {
       // Save the new customer to this shop
       try {
         if (shopId) {
-          await addCustomer({ name: custName, phone: custPhone, shopId: parseInt(shopId) });
+          const res = await addCustomer({ name: custName, phone: custPhone, shopId: parseInt(shopId) });
+          if (res.data.success) custId = res.data.data.id;
         }
       } catch {
         // Non-fatal: still allow the order to proceed
@@ -99,10 +101,11 @@ const BottomNav = () => {
       if (c) {
         custName = c.name;
         custPhone = c.phone || "";
+        custId = c.id;
       }
     }
 
-    dispatch(setCustomer({ name: custName, phone: custPhone, guests: guestCount }));
+    dispatch(setCustomer({ name: custName, phone: custPhone, guests: guestCount, customerId: custId }));
     setIsModalOpen(false);
     navigate("/tables");
   };
