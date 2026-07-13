@@ -1,65 +1,111 @@
 import React, { useState, useEffect } from "react";
 import BackButton from "../components/shared/BackButton";
-import { useQuery, useMutation } from "@tanstack/react-query";
 import { enqueueSnackbar } from "notistack";
 import { FiPlus, FiMinus, FiTrash2 } from "react-icons/fi";
 import { useSelector } from "react-redux";
 import { Navigate } from "react-router-dom";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://pos-backend-lime.vercel.app";
+
 const Stock = () => {
   const { user } = useSelector(state => state.user);
+  const shopId = localStorage.getItem("selectedShop");
 
-  // Check if user is admin
-  if (user?.role !== "Admin") {
-    return <Navigate to="/" />;
-  }
-  const [stockItems, setStockItems] = useState([
-    { id: 1, name: "Chicken Tikka", quantity: 50, unit: "kg", minLevel: 10 },
-    { id: 2, name: "Basmati Rice", quantity: 100, unit: "kg", minLevel: 20 },
-    { id: 3, name: "Dal", quantity: 30, unit: "kg", minLevel: 5 },
-    { id: 4, name: "Oil", quantity: 20, unit: "liter", minLevel: 5 },
-  ]);
+  const [stockItems, setStockItems] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [formData, setFormData] = useState({ name: "", quantity: "", unit: "kg", minLevel: "" });
 
   useEffect(() => {
     document.title = "POS | Stock";
-  }, []);
+    if (shopId) fetchStock();
+  }, [shopId]);
 
-  const handleAddStock = (e) => {
+  const fetchStock = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/stock?shopId=${shopId}`);
+      const data = await res.json();
+      if (data.success) setStockItems(data.data);
+    } catch (error) {
+      console.error("Error fetching stock:", error);
+      enqueueSnackbar("Failed to load stock", { variant: "error" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (user?.role !== "Admin") {
+    return <Navigate to="/" />;
+  }
+
+  const handleAddStock = async (e) => {
     e.preventDefault();
     if (!formData.name || !formData.quantity || !formData.minLevel) {
       enqueueSnackbar("Please fill all fields", { variant: "warning" });
       return;
     }
-    const newItem = {
-      id: Math.max(...stockItems.map(i => i.id), 0) + 1,
-      name: formData.name,
-      quantity: parseInt(formData.quantity),
-      unit: formData.unit,
-      minLevel: parseInt(formData.minLevel),
-    };
-    setStockItems([...stockItems, newItem]);
-    setFormData({ name: "", quantity: "", unit: "kg", minLevel: "" });
-    setShowAddModal(false);
-    enqueueSnackbar("Stock item added!", { variant: "success" });
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/stock`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.name,
+          quantity: parseFloat(formData.quantity),
+          unit: formData.unit,
+          minLevel: parseFloat(formData.minLevel),
+          shopId: parseInt(shopId),
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        enqueueSnackbar("Stock item added!", { variant: "success" });
+        fetchStock();
+        setFormData({ name: "", quantity: "", unit: "kg", minLevel: "" });
+        setShowAddModal(false);
+      } else {
+        enqueueSnackbar(data.message || "Failed to add", { variant: "error" });
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      enqueueSnackbar("Connection error", { variant: "error" });
+    }
   };
 
-  const handleUpdateQuantity = (id, change) => {
-    setStockItems(stockItems.map(item =>
-      item.id === id ? { ...item, quantity: Math.max(0, item.quantity + change) } : item
-    ));
+  const handleUpdateQuantity = async (item, change) => {
+    const newQty = Math.max(0, (item.quantity || 0) + change);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/stock/${item.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quantity: newQty }),
+      });
+      const data = await res.json();
+      if (data.success) fetchStock();
+    } catch (error) {
+      console.error("Error:", error);
+      enqueueSnackbar("Connection error", { variant: "error" });
+    }
   };
 
-  const handleDeleteItem = (id) => {
-    setStockItems(stockItems.filter(item => item.id !== id));
-    enqueueSnackbar("Item deleted!", { variant: "success" });
+  const handleDeleteItem = async (id) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/stock/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.success) {
+        enqueueSnackbar("Item deleted!", { variant: "success" });
+        fetchStock();
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      enqueueSnackbar("Connection error", { variant: "error" });
+    }
   };
 
   const lowStockItems = stockItems.filter(item => item.quantity <= item.minLevel);
 
   return (
-    <section className="bg-[#1f1f1f] h-[calc(100vh-5rem)] overflow-hidden flex flex-col">
+    <section className="bg-[#1f1f1f] min-h-screen overflow-auto flex flex-col pb-10">
       <div className="flex items-center justify-between px-10 py-4">
         <div className="flex items-center gap-4">
           <BackButton />
@@ -98,7 +144,11 @@ const Stock = () => {
             </tr>
           </thead>
           <tbody>
-            {stockItems.map((item) => (
+            {loading ? (
+              <tr><td colSpan="5" className="px-4 py-8 text-center text-[#ababab]">Loading...</td></tr>
+            ) : stockItems.length === 0 ? (
+              <tr><td colSpan="5" className="px-4 py-8 text-center text-[#ababab]">No stock items yet. Click "Add Stock".</td></tr>
+            ) : stockItems.map((item) => (
               <tr key={item.id} className="border-b border-[#383838] hover:bg-[#2a2a2a]">
                 <td className="px-4 py-3 text-[#f5f5f5]">{item.name}</td>
                 <td className={`px-4 py-3 font-semibold ${item.quantity <= item.minLevel ? "text-red-400" : "text-green-400"}`}>
@@ -108,14 +158,14 @@ const Stock = () => {
                 <td className="px-4 py-3">{item.minLevel}</td>
                 <td className="px-4 py-3 flex gap-2">
                   <button
-                    onClick={() => handleUpdateQuantity(item.id, -5)}
+                    onClick={() => handleUpdateQuantity(item, -5)}
                     className="bg-red-600 hover:bg-red-700 p-2 rounded text-white"
                     title="Decrease"
                   >
                     <FiMinus size={16} />
                   </button>
                   <button
-                    onClick={() => handleUpdateQuantity(item.id, 5)}
+                    onClick={() => handleUpdateQuantity(item, 5)}
                     className="bg-green-600 hover:bg-green-700 p-2 rounded text-white"
                     title="Increase"
                   >
@@ -203,8 +253,6 @@ const Stock = () => {
           </div>
         </div>
       )}
-
-      <BottomNav />
     </section>
   );
 };

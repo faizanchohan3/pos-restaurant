@@ -30,9 +30,9 @@ const Categories = () => {
   const fetchCategories = async () => {
     setLoading(true);
     try {
-      // TODO: Add API endpoint for fetching categories by shop_id
-      // For now, return empty array
-      setCategories([]);
+      const res = await fetch(`${API_BASE_URL}/api/categories?shopId=${shopId}`);
+      const data = await res.json();
+      if (data.success) setCategories(data.data);
     } catch (error) {
       console.error("Error fetching categories:", error);
       enqueueSnackbar("Failed to load categories", { variant: "error" });
@@ -45,38 +45,60 @@ const Categories = () => {
     return <Navigate to="/" />;
   }
 
-  const handleAddCategory = (e) => {
+  const handleAddCategory = async (e) => {
     e.preventDefault();
     if (!formData.name) {
       enqueueSnackbar("Please enter category name", { variant: "warning" });
       return;
     }
 
-    if (editingId) {
-      setCategories(categories.map(c => c.id === editingId ? { ...c, ...formData, id: editingId } : c));
-      enqueueSnackbar("Category updated!", { variant: "success" });
-      setEditingId(null);
-    } else {
-      const newCategory = {
-        id: Math.max(...categories.map(c => c.id), 0) + 1,
-        ...formData,
-        shop_id: 1, // Current shop
-      };
-      setCategories([...categories, newCategory]);
-      enqueueSnackbar("Category added!", { variant: "success" });
-    }
+    try {
+      const url = editingId
+        ? `${API_BASE_URL}/api/categories/${editingId}`
+        : `${API_BASE_URL}/api/categories`;
+      const method = editingId ? "PUT" : "POST";
 
-    setFormData({ name: "", description: "" });
-    setShowAddModal(false);
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: formData.name, shopId: parseInt(shopId) }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        enqueueSnackbar(editingId ? "Category updated!" : "Category added!", { variant: "success" });
+        fetchCategories();
+        setShowAddModal(false);
+        setEditingId(null);
+        setFormData({ name: "", description: "" });
+      } else {
+        enqueueSnackbar(data.message || "Operation failed", { variant: "error" });
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      enqueueSnackbar("Connection error", { variant: "error" });
+    }
   };
 
-  const handleDeleteCategory = (id) => {
-    setCategories(categories.filter(c => c.id !== id));
-    enqueueSnackbar("Category deleted!", { variant: "success" });
+  const handleDeleteCategory = async (id) => {
+    if (!window.confirm("Delete this category?")) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/categories/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.success) {
+        enqueueSnackbar("Category deleted!", { variant: "success" });
+        fetchCategories();
+      } else {
+        enqueueSnackbar("Failed to delete", { variant: "error" });
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      enqueueSnackbar("Connection error", { variant: "error" });
+    }
   };
 
   const handleEditCategory = (category) => {
-    setFormData(category);
+    setFormData({ name: category.name, description: category.description || "" });
     setEditingId(category.id);
     setShowAddModal(true);
   };
@@ -104,11 +126,15 @@ const Categories = () => {
 
       {/* Categories Grid */}
       <div className="flex-1 overflow-auto px-10 pb-4">
+        {loading ? (
+          <p className="text-center text-[#ababab] py-8">Loading...</p>
+        ) : categories.length === 0 ? (
+          <p className="text-center text-[#ababab] py-8">No categories yet. Click "Add Category" to create one.</p>
+        ) : (
         <div className="grid grid-cols-3 gap-4">
           {categories.map((category) => (
             <div key={category.id} className="bg-[#2a2a2a] rounded-lg p-5 border border-[#383838] hover:border-yellow-400 transition">
               <h3 className="text-[#f5f5f5] font-bold text-lg mb-2">{category.name}</h3>
-              <p className="text-[#ababab] text-sm mb-4">{category.description}</p>
 
               <div className="flex gap-2">
                 <button
@@ -127,6 +153,7 @@ const Categories = () => {
             </div>
           ))}
         </div>
+        )}
       </div>
 
       {/* Add/Edit Category Modal */}
@@ -148,15 +175,6 @@ const Categories = () => {
                   placeholder="e.g., Appetizers, Main Course"
                   className="w-full bg-[#1f1f1f] text-white px-4 py-2 rounded-lg focus:outline-none border border-[#383838] focus:border-yellow-400"
                   required
-                />
-              </div>
-              <div>
-                <label className="text-[#ababab] text-sm mb-2 block font-semibold">✍️ Description</label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  placeholder="Enter category description"
-                  className="w-full bg-[#1f1f1f] text-white px-4 py-2 rounded-lg focus:outline-none border border-[#383838] focus:border-yellow-400 h-20 resize-none"
                 />
               </div>
               <div className="flex gap-3 pt-4 border-t border-[#383838]">
@@ -182,8 +200,6 @@ const Categories = () => {
           </div>
         </div>
       )}
-
-      <BottomNav />
     </section>
   );
 };

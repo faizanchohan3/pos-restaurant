@@ -3,11 +3,12 @@ import BackButton from "../components/shared/BackButton";
 import { enqueueSnackbar } from "notistack";
 import { FiMapPin, FiPhone, FiClock } from "react-icons/fi";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://pos-backend-lime.vercel.app";
+
 const Delivery = () => {
-  const [deliveryOrders, setDeliveryOrders] = useState([
-    { id: 1, customerName: "John Doe", phone: "9876543210", address: "123 Main St", items: 3, total: 450, status: "Pending", time: "10 mins" },
-    { id: 2, customerName: "Jane Smith", phone: "9876543211", address: "456 Oak Ave", items: 2, total: 320, status: "In Transit", time: "15 mins" },
-  ]);
+  const shopId = localStorage.getItem("selectedShop");
+  const [deliveryOrders, setDeliveryOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [formData, setFormData] = useState({
     customerName: "",
@@ -19,40 +20,88 @@ const Delivery = () => {
 
   useEffect(() => {
     document.title = "POS | Delivery Orders";
-  }, []);
+    if (shopId) fetchDeliveries();
+  }, [shopId]);
 
-  const handleAddDelivery = (e) => {
+  const fetchDeliveries = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/delivery?shopId=${shopId}`);
+      const data = await res.json();
+      if (data.success) setDeliveryOrders(data.data);
+    } catch (error) {
+      console.error("Error fetching deliveries:", error);
+      enqueueSnackbar("Failed to load deliveries", { variant: "error" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddDelivery = async (e) => {
     e.preventDefault();
     if (!formData.customerName || !formData.phone || !formData.address || !formData.items || !formData.total) {
       enqueueSnackbar("Please fill all fields", { variant: "warning" });
       return;
     }
-    const newOrder = {
-      id: Math.max(...deliveryOrders.map(o => o.id), 0) + 1,
-      customerName: formData.customerName,
-      phone: formData.phone,
-      address: formData.address,
-      items: parseInt(formData.items),
-      total: parseInt(formData.total),
-      status: "Pending",
-      time: "0 mins",
-    };
-    setDeliveryOrders([...deliveryOrders, newOrder]);
-    setFormData({ customerName: "", phone: "", address: "", items: "", total: "" });
-    setShowAddModal(false);
-    enqueueSnackbar("Delivery order created!", { variant: "success" });
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/delivery`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customerName: formData.customerName,
+          phone: formData.phone,
+          address: formData.address,
+          items: parseInt(formData.items),
+          total: parseFloat(formData.total),
+          status: "Pending",
+          shopId: parseInt(shopId),
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        enqueueSnackbar("Delivery order created!", { variant: "success" });
+        fetchDeliveries();
+        setFormData({ customerName: "", phone: "", address: "", items: "", total: "" });
+        setShowAddModal(false);
+      } else {
+        enqueueSnackbar(data.message || "Failed to create", { variant: "error" });
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      enqueueSnackbar("Connection error", { variant: "error" });
+    }
   };
 
-  const handleUpdateStatus = (id, newStatus) => {
-    setDeliveryOrders(deliveryOrders.map(order =>
-      order.id === id ? { ...order, status: newStatus } : order
-    ));
-    enqueueSnackbar("Status updated!", { variant: "success" });
+  const handleUpdateStatus = async (id, newStatus) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/delivery/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        enqueueSnackbar("Status updated!", { variant: "success" });
+        fetchDeliveries();
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      enqueueSnackbar("Connection error", { variant: "error" });
+    }
   };
 
-  const handleDeleteOrder = (id) => {
-    setDeliveryOrders(deliveryOrders.filter(order => order.id !== id));
-    enqueueSnackbar("Order deleted!", { variant: "success" });
+  const handleDeleteOrder = async (id) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/delivery/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.success) {
+        enqueueSnackbar("Order deleted!", { variant: "success" });
+        fetchDeliveries();
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      enqueueSnackbar("Connection error", { variant: "error" });
+    }
   };
 
   const statusColors = {
@@ -104,7 +153,9 @@ const Delivery = () => {
 
               <div className="flex items-center gap-2 mb-3">
                 <FiClock size={14} className="text-[#ababab]" />
-                <span className="text-[#ababab] text-sm">{order.time}</span>
+                <span className="text-[#ababab] text-sm">
+                  {order.createdAt ? new Date(order.createdAt).toLocaleString() : ""}
+                </span>
                 <span className={`ml-auto px-3 py-1 rounded-full text-sm font-semibold ${statusColors[order.status]}`}>
                   {order.status}
                 </span>
@@ -210,7 +261,6 @@ const Delivery = () => {
         </div>
       )}
 
-      <BottomNav />
     </section>
   );
 };

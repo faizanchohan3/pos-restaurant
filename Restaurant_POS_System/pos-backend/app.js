@@ -955,6 +955,138 @@ app.delete("/api/expenses/:id", async (req, res) => {
   }
 });
 
+// ==================== STOCK ROUTES ====================
+
+app.get("/api/stock", async (req, res) => {
+  try {
+    if (!db) return res.status(503).json({ success: false, message: "Database not connected" });
+    const shopId = req.query.shopId;
+    let query = 'SELECT * FROM "Stock" ORDER BY id DESC';
+    let values = [];
+    if (shopId) {
+      query = 'SELECT * FROM "Stock" WHERE "shopId" = $1 ORDER BY id DESC';
+      values = [parseInt(shopId)];
+    }
+    const result = await db.query(query, values);
+    res.status(200).json({ success: true, data: result.rows });
+  } catch (error) {
+    console.error("Error fetching stock:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.post("/api/stock", async (req, res) => {
+  try {
+    if (!db) return res.status(503).json({ success: false, message: "Database not connected" });
+    const { name, quantity, unit, minLevel, shopId } = req.body;
+    if (!name || !shopId) {
+      return res.status(400).json({ success: false, message: "Name and shop ID are required" });
+    }
+    const result = await db.query(
+      'INSERT INTO "Stock" (name, quantity, unit, "minLevel", "shopId", "createdAt") VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING *',
+      [name, quantity || 0, unit || 'kg', minLevel || 0, parseInt(shopId)]
+    );
+    res.status(201).json({ success: true, message: "Stock item added!", data: result.rows[0] });
+  } catch (error) {
+    console.error("Error creating stock:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.put("/api/stock/:id", async (req, res) => {
+  try {
+    if (!db) return res.status(503).json({ success: false, message: "Database not connected" });
+    const { name, quantity, unit, minLevel } = req.body;
+    const result = await db.query(
+      'UPDATE "Stock" SET name = COALESCE($1, name), quantity = COALESCE($2, quantity), unit = COALESCE($3, unit), "minLevel" = COALESCE($4, "minLevel") WHERE id = $5 RETURNING *',
+      [name || null, quantity ?? null, unit || null, minLevel ?? null, parseInt(req.params.id)]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ success: false, message: "Stock item not found" });
+    res.status(200).json({ success: true, message: "Stock updated!", data: result.rows[0] });
+  } catch (error) {
+    console.error("Error updating stock:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.delete("/api/stock/:id", async (req, res) => {
+  try {
+    if (!db) return res.status(503).json({ success: false, message: "Database not connected" });
+    const result = await db.query('DELETE FROM "Stock" WHERE id = $1 RETURNING *', [parseInt(req.params.id)]);
+    if (result.rows.length === 0) return res.status(404).json({ success: false, message: "Stock item not found" });
+    res.status(200).json({ success: true, message: "Stock deleted!", data: result.rows[0] });
+  } catch (error) {
+    console.error("Error deleting stock:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// ==================== DELIVERY ROUTES ====================
+
+app.get("/api/delivery", async (req, res) => {
+  try {
+    if (!db) return res.status(503).json({ success: false, message: "Database not connected" });
+    const shopId = req.query.shopId;
+    let query = 'SELECT * FROM "Delivery" ORDER BY id DESC';
+    let values = [];
+    if (shopId) {
+      query = 'SELECT * FROM "Delivery" WHERE "shopId" = $1 ORDER BY id DESC';
+      values = [parseInt(shopId)];
+    }
+    const result = await db.query(query, values);
+    res.status(200).json({ success: true, data: result.rows });
+  } catch (error) {
+    console.error("Error fetching deliveries:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.post("/api/delivery", async (req, res) => {
+  try {
+    if (!db) return res.status(503).json({ success: false, message: "Database not connected" });
+    const { customerName, phone, address, items, total, status, shopId } = req.body;
+    if (!customerName || !shopId) {
+      return res.status(400).json({ success: false, message: "Customer name and shop ID are required" });
+    }
+    const result = await db.query(
+      'INSERT INTO "Delivery" ("customerName", phone, address, items, total, status, "shopId", "createdAt") VALUES ($1, $2, $3, $4, $5, $6, $7, NOW()) RETURNING *',
+      [customerName, phone || '', address || '', items || 0, total || 0, status || 'Pending', parseInt(shopId)]
+    );
+    res.status(201).json({ success: true, message: "Delivery added!", data: result.rows[0] });
+  } catch (error) {
+    console.error("Error creating delivery:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.put("/api/delivery/:id", async (req, res) => {
+  try {
+    if (!db) return res.status(503).json({ success: false, message: "Database not connected" });
+    const { customerName, phone, address, items, total, status } = req.body;
+    const result = await db.query(
+      'UPDATE "Delivery" SET "customerName" = COALESCE($1, "customerName"), phone = COALESCE($2, phone), address = COALESCE($3, address), items = COALESCE($4, items), total = COALESCE($5, total), status = COALESCE($6, status) WHERE id = $7 RETURNING *',
+      [customerName || null, phone || null, address || null, items ?? null, total ?? null, status || null, parseInt(req.params.id)]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ success: false, message: "Delivery not found" });
+    res.status(200).json({ success: true, message: "Delivery updated!", data: result.rows[0] });
+  } catch (error) {
+    console.error("Error updating delivery:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.delete("/api/delivery/:id", async (req, res) => {
+  try {
+    if (!db) return res.status(503).json({ success: false, message: "Database not connected" });
+    const result = await db.query('DELETE FROM "Delivery" WHERE id = $1 RETURNING *', [parseInt(req.params.id)]);
+    if (result.rows.length === 0) return res.status(404).json({ success: false, message: "Delivery not found" });
+    res.status(200).json({ success: true, message: "Delivery deleted!", data: result.rows[0] });
+  } catch (error) {
+    console.error("Error deleting delivery:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // Global Error Handler
 app.use(globalErrorHandler);
 

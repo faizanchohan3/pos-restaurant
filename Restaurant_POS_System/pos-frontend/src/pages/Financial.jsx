@@ -218,7 +218,6 @@ const Financial = () => {
         </div>
       </div>
 
-      <BottomNav />
     </section>
   );
 };
