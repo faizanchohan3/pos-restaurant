@@ -36,11 +36,13 @@ const Invoice = ({ orderInfo, setShowInvoice }) => {
                   body { font-family: Arial, sans-serif; padding: 20px; }
                   .receipt-container { width: 300px; border: 1px solid #ddd; padding: 10px; }
                   h2 { text-align: center; }
+                  .powered { text-align: center; margin-top: 16px; padding-top: 8px; border-top: 1px dashed #999; font-size: 11px; color: #666; }
                 </style>
               </head>
               <body>
                 ${printContent}
               </body>
+
             </html>
           `);
 
@@ -175,6 +177,9 @@ const Invoice = ({ orderInfo, setShowInvoice }) => {
               <strong>Payment Method:</strong>{" "}
               {orderInfo?.paymentMethod || "Cash"}
             </p>
+            <div className="text-center mt-3 pt-2 border-t border-dashed border-gray-400 text-[10px] text-gray-500">
+              Powered by <strong>SoftTech</strong> · 0333 9777676
+            </div>
             {orderInfo?.paymentData?.razorpay_order_id && (
               <>
                 <p>

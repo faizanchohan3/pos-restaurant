@@ -8,6 +8,7 @@ import {
   updateOrderStatus,
   updateOrder,
   getCustomers,
+  getStaffByShop,
   getLedger,
   addLedgerEntry,
   updateLedgerEntry,
@@ -40,6 +41,7 @@ const Orders = () => {
   const [printOrder, setPrintOrder] = useState(null);
   const [showInvoice, setShowInvoice] = useState(false);
   const [customers, setCustomers] = useState([]);
+  const [staff, setStaff] = useState([]);
   const [ledger, setLedger] = useState([]);
   const queryClient = useQueryClient();
 
@@ -53,11 +55,27 @@ const Orders = () => {
   const loadAux = async () => {
     if (!shopId) return;
     try {
-      const [c, l] = await Promise.all([getCustomers(shopId), getLedger(shopId)]);
+      const [c, l, s] = await Promise.all([
+        getCustomers(shopId),
+        getLedger(shopId),
+        getStaffByShop(shopId),
+      ]);
       if (c.data.success) setCustomers(c.data.data);
       if (l.data.success) setLedger(l.data.data);
+      if (s.data.success) setStaff(s.data.data);
     } catch {
       // ignore
+    }
+  };
+
+  const assignStaff = async (order, staffId) => {
+    const s = staff.find((x) => String(x.id) === String(staffId));
+    try {
+      await updateOrder({ orderId: order.id, staffId: staffId || null, staffName: s?.name || "" });
+      enqueueSnackbar(s ? `Assigned to ${s.name}` : "Staff cleared", { variant: "success" });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+    } catch {
+      enqueueSnackbar("Failed to assign staff", { variant: "error" });
     }
   };
 
@@ -280,6 +298,7 @@ const Orders = () => {
                 <th className="p-3 border-b border-[#383838]">Customer</th>
                 <th className="p-3 border-b border-[#383838]">Phone</th>
                 <th className="p-3 border-b border-[#383838]">Table</th>
+                <th className="p-3 border-b border-[#383838]">Staff</th>
                 <th className="p-3 border-b border-[#383838] text-center">Items</th>
                 <th className="p-3 border-b border-[#383838] text-right">Total</th>
                 <th className="p-3 border-b border-[#383838]">Payment</th>
@@ -292,7 +311,7 @@ const Orders = () => {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="p-6 text-center text-[#ababab]">
+                  <td colSpan={12} className="p-6 text-center text-[#ababab]">
                     No orders available
                   </td>
                 </tr>
@@ -328,6 +347,18 @@ const Orders = () => {
                         {customer.phone || "-"}
                       </td>
                       <td className="p-3 border-b border-[#333]">{tableNo}</td>
+                      <td className="p-3 border-b border-[#333]">
+                        <select
+                          value={order.staffId || ""}
+                          onChange={(e) => assignStaff(order, e.target.value)}
+                          className="bg-[#1f1f1f] text-[#ababab] text-xs rounded px-1 py-0.5 border border-[#383838] focus:outline-none max-w-[120px]"
+                        >
+                          <option value="">— staff —</option>
+                          {staff.map((s) => (
+                            <option key={s.id} value={s.id}>{s.name}</option>
+                          ))}
+                        </select>
+                      </td>
                       <td className="p-3 border-b border-[#333] text-center">{items.length}</td>
                       <td className="p-3 border-b border-[#333] text-right font-semibold">
                         PKR {total.toFixed(2)}

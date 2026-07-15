@@ -4,7 +4,7 @@ import Invoice from "../components/invoice/Invoice";
 import { enqueueSnackbar } from "notistack";
 import { FiMapPin, FiPhone, FiClock, FiPlus, FiMinus, FiTrash2 } from "react-icons/fi";
 import { FaPrint } from "react-icons/fa";
-import { getCustomers, addCustomer } from "../https";
+import { getCustomers, addCustomer, getStaffByShop, addLedgerEntry } from "../https";
 import { parseJSON, printReport } from "../utils";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://pos-backend-lime.vercel.app";
@@ -23,6 +23,8 @@ const Delivery = () => {
   const [cust, setCust] = useState({ name: "", phone: "", address: "" });
   const [cart, setCart] = useState({}); // { productId: { ...product, qty } }
   const [note, setNote] = useState("");
+  const [riders, setRiders] = useState([]);
+  const [riderId, setRiderId] = useState("");
 
   // invoice
   const [printOrder, setPrintOrder] = useState(null);
@@ -37,6 +39,12 @@ const Delivery = () => {
     if (shopId) {
       fetchDeliveries();
       getCustomers(shopId).then((r) => r.data.success && setCustomers(r.data.data)).catch(() => {});
+      getStaffByShop(shopId)
+        .then((r) => {
+          if (r.data.success)
+            setRiders(r.data.data.filter((s) => ["Rider", "Worker"].includes(s.role)));
+        })
+        .catch(() => {});
       fetch(`${API_BASE_URL}/api/products?shopId=${shopId}`)
         .then((r) => r.json())
         .then((d) => d.success && setProducts(d.data))
@@ -68,6 +76,7 @@ const Delivery = () => {
     setCust({ name: "", phone: "", address: "" });
     setCart({});
     setNote("");
+    setRiderId("");
     setShowAddModal(true);
   };
 
@@ -151,6 +160,8 @@ const Delivery = () => {
           total: grandTotal,
           status: "Pending",
           note: note.trim(),
+          riderId: riderId ? parseInt(riderId) : null,
+          riderName: riders.find((r) => String(r.id) === String(riderId))?.name || "",
           shopId: parseInt(shopId),
         }),
       });
@@ -186,15 +197,51 @@ const Delivery = () => {
     setShowInvoice(true);
   };
 
-  const handleUpdateStatus = async (id, newStatus) => {
+  const handleUpdateStatus = async (order, newStatus) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/delivery/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/delivery/${order.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),
       });
       const data = await res.json();
-      if (data.success) fetchDeliveries();
+      if (data.success) {
+        // On delivery, the rider collects the cash -> record it on the rider's ledger.
+        if (newStatus === "Delivered" && order.status !== "Delivered" && order.riderId) {
+          try {
+            await addLedgerEntry({
+              shopId: parseInt(shopId),
+              staffId: order.riderId,
+              customerName: order.riderName || "Rider",
+              type: "debit",
+              amount: Number(order.total) || 0,
+              description: `Delivery #${order.id} cash collected`,
+            });
+            enqueueSnackbar("Cash added to rider's ledger", { variant: "info" });
+          } catch {
+            // non-fatal
+          }
+        }
+        fetchDeliveries();
+      }
+    } catch {
+      enqueueSnackbar("Connection error", { variant: "error" });
+    }
+  };
+
+  const assignRider = async (order, rid) => {
+    const r = riders.find((x) => String(x.id) === String(rid));
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/delivery/${order.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ riderId: rid ? parseInt(rid) : null, riderName: r?.name || "" }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        enqueueSnackbar(r ? `Assigned to ${r.name}` : "Rider cleared", { variant: "success" });
+        fetchDeliveries();
+      }
     } catch {
       enqueueSnackbar("Connection error", { variant: "error" });
     }
@@ -337,6 +384,9 @@ const Delivery = () => {
                     {order.note && (
                       <p className="text-yellow-300/80 text-xs mt-1 italic">📝 {order.note}</p>
                     )}
+                    {order.riderName && (
+                      <p className="text-blue-300 text-xs mt-1">🏍️ Rider: {order.riderName}</p>
+                    )}
                   </div>
                   <div className="text-right">
                     <p className="text-yellow-400 font-bold text-xl">PKR {Number(order.total).toFixed(2)}</p>
@@ -354,10 +404,22 @@ const Delivery = () => {
                   </span>
                 </div>
 
+                <div className="mb-2">
+                  <select
+                    value={order.riderId || ""}
+                    onChange={(e) => assignRider(order, e.target.value)}
+                    className="w-full bg-[#1f1f1f] text-[#ababab] px-3 py-2 rounded text-sm border border-[#383838] focus:outline-none"
+                  >
+                    <option value="">🏍️ Assign rider…</option>
+                    {riders.map((r) => (
+                      <option key={r.id} value={r.id}>{r.name} ({r.role})</option>
+                    ))}
+                  </select>
+                </div>
                 <div className="flex gap-2">
                   <select
                     value={order.status}
-                    onChange={(e) => handleUpdateStatus(order.id, e.target.value)}
+                    onChange={(e) => handleUpdateStatus(order, e.target.value)}
                     className="flex-1 bg-[#1f1f1f] text-white px-3 py-2 rounded text-sm border border-[#383838] focus:outline-none"
                   >
                     <option value="Pending">Pending</option>
@@ -434,8 +496,19 @@ const Delivery = () => {
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
                     placeholder="Order note (e.g. no onions, ring bell) — optional"
-                    className="w-full bg-[#1f1f1f] text-white px-3 py-2 rounded-lg border border-[#383838] text-sm h-16 resize-none"
+                    className="w-full bg-[#1f1f1f] text-white px-3 py-2 rounded-lg border border-[#383838] text-sm h-16 resize-none mb-3"
                   />
+                  <label className="text-[#ababab] text-xs mb-1 block">Assign Rider</label>
+                  <select
+                    value={riderId}
+                    onChange={(e) => setRiderId(e.target.value)}
+                    className="w-full bg-[#1f1f1f] text-white px-3 py-2 rounded-lg border border-[#383838] text-sm"
+                  >
+                    <option value="">— No rider yet —</option>
+                    {riders.map((r) => (
+                      <option key={r.id} value={r.id}>{r.name} ({r.role})</option>
+                    ))}
+                  </select>
 
                   {/* Cart summary */}
                   <div className="mt-4 bg-[#1f1f1f] rounded-lg p-3 border border-[#383838]">

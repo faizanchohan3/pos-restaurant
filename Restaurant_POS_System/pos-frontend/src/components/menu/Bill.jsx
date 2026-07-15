@@ -220,7 +220,10 @@ const Bill = () => {
   const tableUpdateMutation = useMutation({
     mutationFn: (reqData) => updateTable(reqData),
     onSuccess: (resData) => {
-      console.log(resData);
+      // Clear this table's saved cart now that the order is placed
+      const sid = localStorage.getItem("selectedShop");
+      const tid = customerData.table?.tableId;
+      if (sid && tid) localStorage.removeItem(`cart_${sid}_${tid}`);
       dispatch(removeCustomer());
       dispatch(removeAllItems());
     },

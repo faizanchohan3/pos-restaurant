@@ -6,10 +6,11 @@ import MenuContainer from "../components/menu/MenuContainer";
 import CustomerInfo from "../components/menu/CustomerInfo";
 import CartInfo from "../components/menu/CartInfo";
 import Bill from "../components/menu/Bill";
-import { useSelector } from "react-redux";
-import { getTotalPrice } from "../redux/slices/cartSlice";
+import { useSelector, useDispatch } from "react-redux";
+import { getTotalPrice, setCart } from "../redux/slices/cartSlice";
 
 const Menu = () => {
+  const dispatch = useDispatch();
 
     useEffect(() => {
       document.title = "POS | Menu"
@@ -18,6 +19,26 @@ const Menu = () => {
   const customerData = useSelector((state) => state.customer);
   const cartData = useSelector((state) => state.cart);
   const total = useSelector(getTotalPrice);
+
+  // Persist the cart per table + shop, so it survives navigation/reload.
+  const shopId = localStorage.getItem("selectedShop");
+  const tableId = customerData.table?.tableId;
+  const cartKey = tableId ? `cart_${shopId}_${tableId}` : null;
+
+  useEffect(() => {
+    if (!cartKey) return;
+    try {
+      dispatch(setCart(JSON.parse(localStorage.getItem(cartKey) || "[]")));
+    } catch {
+      dispatch(setCart([]));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cartKey]);
+
+  useEffect(() => {
+    if (!cartKey) return;
+    localStorage.setItem(cartKey, JSON.stringify(cartData));
+  }, [cartData, cartKey]);
   const taxRate = 5.25;
   const tax = (total * taxRate) / 100;
   const totalPriceWithTax = total + tax;
@@ -70,8 +91,7 @@ const Menu = () => {
             <CustomerInfo />
           </div>
 
-          <div className="bg-[#2a2a2a] rounded-lg border border-[#383838] p-4 overflow-y-auto max-h-96">
-            <h3 className="text-[#f5f5f5] font-bold mb-3">🛒 Cart</h3>
+          <div className="rounded-lg overflow-hidden">
             <CartInfo />
           </div>
 

@@ -58,6 +58,7 @@ export const printReport = (title, subtitle, innerHtml) => {
           tfoot td { font-weight: bold; background: #fafafa; }
           .right { text-align: right; }
           .center { text-align: center; }
+          .powered { text-align: center; margin-top: 24px; padding-top: 10px; border-top: 1px solid #ddd; font-size: 11px; color: #666; }
         </style>
       </head>
       <body>
@@ -65,6 +66,7 @@ export const printReport = (title, subtitle, innerHtml) => {
         <h2>${title}</h2>
         <div class="meta">${subtitle || ""} &middot; Printed ${new Date().toLocaleString()}</div>
         ${innerHtml}
+        <div class="powered">Powered by <strong>SoftTech</strong> &middot; Contact: 0333 9777676</div>
       </body>
     </html>
   `);

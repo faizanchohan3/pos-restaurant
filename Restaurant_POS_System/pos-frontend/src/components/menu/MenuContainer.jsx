@@ -65,18 +65,21 @@ const MenuContainer = () => {
   };
 
   const handleAddToCart = (item) => {
-    if (itemCount === 0) return;
+    // Clicking add-to-cart adds 1 (or the chosen count); quantity is
+    // editable afterwards in the Cart / order details.
+    const qty = itemId === item.id && itemCount > 0 ? itemCount : 1;
     const { name, price } = item;
     dispatch(
       addItems({
         id: item.id,
         name,
         pricePerQuantity: price,
-        quantity: itemCount,
-        price: price * itemCount,
+        quantity: qty,
+        price: price * qty,
       })
     );
     setItemCount(0);
+    enqueueSnackbar(`${name} added`, { variant: "success" });
   };
 
   const productsFor = (category) =>
