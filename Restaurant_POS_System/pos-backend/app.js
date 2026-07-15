@@ -1059,13 +1059,13 @@ app.get("/api/delivery", async (req, res) => {
 app.post("/api/delivery", async (req, res) => {
   try {
     if (!db) return res.status(503).json({ success: false, message: "Database not connected" });
-    const { customerName, phone, address, items, itemsData, total, status, shopId, note, riderId, riderName } = req.body;
+    const { customerName, phone, address, items, itemsData, total, status, shopId, note, riderId, riderName, customerId, paymentStatus } = req.body;
     if (!customerName || !shopId) {
       return res.status(400).json({ success: false, message: "Customer name and shop ID are required" });
     }
     const result = await db.query(
-      'INSERT INTO "Delivery" ("customerName", phone, address, items, "itemsData", total, status, "shopId", note, "riderId", "riderName", "createdAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW()) RETURNING *',
-      [customerName, phone || '', address || '', items || 0, itemsData || '', total || 0, status || 'Pending', parseInt(shopId), note || '', riderId ? parseInt(riderId) : null, riderName || '']
+      'INSERT INTO "Delivery" ("customerName", phone, address, items, "itemsData", total, status, "shopId", note, "riderId", "riderName", "customerId", "paymentStatus", "createdAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW()) RETURNING *',
+      [customerName, phone || '', address || '', items || 0, itemsData || '', total || 0, status || 'Pending', parseInt(shopId), note || '', riderId ? parseInt(riderId) : null, riderName || '', customerId ? parseInt(customerId) : null, paymentStatus || 'unpaid']
     );
     res.status(201).json({ success: true, message: "Delivery added!", data: result.rows[0] });
   } catch (error) {
@@ -1077,10 +1077,10 @@ app.post("/api/delivery", async (req, res) => {
 app.put("/api/delivery/:id", async (req, res) => {
   try {
     if (!db) return res.status(503).json({ success: false, message: "Database not connected" });
-    const { customerName, phone, address, items, total, status, riderId, riderName } = req.body;
+    const { customerName, phone, address, items, total, status, riderId, riderName, paymentStatus } = req.body;
     const result = await db.query(
-      'UPDATE "Delivery" SET "customerName" = COALESCE($1, "customerName"), phone = COALESCE($2, phone), address = COALESCE($3, address), items = COALESCE($4, items), total = COALESCE($5, total), status = COALESCE($6, status), "riderId" = COALESCE($7, "riderId"), "riderName" = COALESCE($8, "riderName") WHERE id = $9 RETURNING *',
-      [customerName || null, phone || null, address || null, items ?? null, total ?? null, status || null, riderId ? parseInt(riderId) : null, riderName || null, parseInt(req.params.id)]
+      'UPDATE "Delivery" SET "customerName" = COALESCE($1, "customerName"), phone = COALESCE($2, phone), address = COALESCE($3, address), items = COALESCE($4, items), total = COALESCE($5, total), status = COALESCE($6, status), "riderId" = COALESCE($7, "riderId"), "riderName" = COALESCE($8, "riderName"), "paymentStatus" = COALESCE($9, "paymentStatus") WHERE id = $10 RETURNING *',
+      [customerName || null, phone || null, address || null, items ?? null, total ?? null, status || null, riderId ? parseInt(riderId) : null, riderName || null, paymentStatus || null, parseInt(req.params.id)]
     );
     if (result.rows.length === 0) return res.status(404).json({ success: false, message: "Delivery not found" });
     res.status(200).json({ success: true, message: "Delivery updated!", data: result.rows[0] });
@@ -1197,13 +1197,13 @@ app.get("/api/ledger", async (req, res) => {
 app.post("/api/ledger", async (req, res) => {
   try {
     if (!db) return res.status(503).json({ success: false, message: "Database not connected" });
-    const { shopId, customerId, customerName, staffId, type, amount, description, orderId } = req.body;
+    const { shopId, customerId, customerName, staffId, type, amount, description, orderId, deliveryId } = req.body;
     if (!shopId || !type || amount === undefined) {
       return res.status(400).json({ success: false, message: "shopId, type and amount are required" });
     }
     const result = await db.query(
-      'INSERT INTO "Ledger" ("shopId", "customerId", "customerName", "staffId", type, amount, description, "orderId", "createdAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW()) RETURNING *',
-      [parseInt(shopId), customerId ? parseInt(customerId) : null, customerName || '', staffId ? parseInt(staffId) : null, type, parseFloat(amount) || 0, description || '', orderId ? parseInt(orderId) : null]
+      'INSERT INTO "Ledger" ("shopId", "customerId", "customerName", "staffId", type, amount, description, "orderId", "deliveryId", "createdAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW()) RETURNING *',
+      [parseInt(shopId), customerId ? parseInt(customerId) : null, customerName || '', staffId ? parseInt(staffId) : null, type, parseFloat(amount) || 0, description || '', orderId ? parseInt(orderId) : null, deliveryId ? parseInt(deliveryId) : null]
     );
     res.status(201).json({ success: true, message: "Ledger entry added!", data: result.rows[0] });
   } catch (error) {

@@ -4,7 +4,7 @@ import Invoice from "../components/invoice/Invoice";
 import { enqueueSnackbar } from "notistack";
 import { FiMapPin, FiPhone, FiClock, FiPlus, FiMinus, FiTrash2 } from "react-icons/fi";
 import { FaPrint } from "react-icons/fa";
-import { getCustomers, addCustomer, getStaffByShop, addLedgerEntry } from "../https";
+import { getCustomers, addCustomer, getStaffByShop, addLedgerEntry, getLedger, deleteLedgerEntry } from "../https";
 import { parseJSON, printReport } from "../utils";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://pos-backend-lime.vercel.app";
@@ -25,6 +25,7 @@ const Delivery = () => {
   const [note, setNote] = useState("");
   const [riders, setRiders] = useState([]);
   const [riderId, setRiderId] = useState("");
+  const [ledger, setLedger] = useState([]);
 
   // invoice
   const [printOrder, setPrintOrder] = useState(null);
@@ -45,12 +46,16 @@ const Delivery = () => {
             setRiders(r.data.data.filter((s) => ["Rider", "Worker"].includes(s.role)));
         })
         .catch(() => {});
+      getLedger(shopId).then((r) => r.data.success && setLedger(r.data.data)).catch(() => {});
       fetch(`${API_BASE_URL}/api/products?shopId=${shopId}`)
         .then((r) => r.json())
         .then((d) => d.success && setProducts(d.data))
         .catch(() => {});
     }
   }, [shopId]);
+
+  const refreshLedger = () =>
+    getLedger(shopId).then((r) => r.data.success && setLedger(r.data.data)).catch(() => {});
 
   const fetchDeliveries = async () => {
     setLoading(true);
@@ -123,15 +128,17 @@ const Delivery = () => {
       return;
     }
 
-    // Save new customer if needed
+    // Resolve the customer id (existing selection or newly created).
+    let customerId = selectedId !== "new" ? parseInt(selectedId) : null;
     if (selectedId === "new") {
       try {
-        await addCustomer({
+        const cRes = await addCustomer({
           name: cust.name.trim(),
           phone: cust.phone || "",
           address: cust.address || "",
           shopId: parseInt(shopId),
         });
+        if (cRes.data.success) customerId = cRes.data.data.id;
       } catch {
         // non-fatal
       }
@@ -162,6 +169,8 @@ const Delivery = () => {
           note: note.trim(),
           riderId: riderId ? parseInt(riderId) : null,
           riderName: riders.find((r) => String(r.id) === String(riderId))?.name || "",
+          customerId,
+          paymentStatus: "unpaid",
           shopId: parseInt(shopId),
         }),
       });
@@ -197,35 +206,87 @@ const Delivery = () => {
     setShowInvoice(true);
   };
 
+  const putDelivery = async (id, body) => {
+    const res = await fetch(`${API_BASE_URL}/api/delivery/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    return res.json();
+  };
+
   const handleUpdateStatus = async (order, newStatus) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/delivery/${order.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        // On delivery, the rider collects the cash -> record it on the rider's ledger.
-        if (newStatus === "Delivered" && order.status !== "Delivered" && order.riderId) {
-          try {
-            await addLedgerEntry({
-              shopId: parseInt(shopId),
-              staffId: order.riderId,
-              customerName: order.riderName || "Rider",
-              type: "debit",
-              amount: Number(order.total) || 0,
-              description: `Delivery #${order.id} cash collected`,
-            });
-            enqueueSnackbar("Cash added to rider's ledger", { variant: "info" });
-          } catch {
-            // non-fatal
-          }
-        }
-        fetchDeliveries();
-      }
+      const data = await putDelivery(order.id, { status: newStatus });
+      if (data.success) fetchDeliveries();
     } catch {
       enqueueSnackbar("Connection error", { variant: "error" });
+    }
+  };
+
+  // Ledger entries already recorded against this delivery
+  const ledgerForDelivery = (deliveryId) =>
+    ledger.filter((e) => String(e.deliveryId) === String(deliveryId));
+
+  // Customer paid the rider cash -> record a debit on the rider's ledger.
+  const handlePaidToRider = async (order) => {
+    if (!order.riderId) {
+      enqueueSnackbar("Assign a rider first", { variant: "warning" });
+      return;
+    }
+    try {
+      await putDelivery(order.id, { paymentStatus: "rider" });
+      // Remove any customer-ledger entry for this delivery, add the rider debit
+      for (const e of ledgerForDelivery(order.id)) {
+        if (e.customerId) await deleteLedgerEntry(e.id);
+      }
+      if (!ledgerForDelivery(order.id).some((e) => e.staffId)) {
+        await addLedgerEntry({
+          shopId: parseInt(shopId),
+          staffId: order.riderId,
+          customerName: order.riderName || "Rider",
+          type: "debit",
+          amount: Number(order.total) || 0,
+          description: `Delivery #${order.id} cash collected`,
+          deliveryId: order.id,
+        });
+      }
+      enqueueSnackbar("Recorded on rider's ledger", { variant: "success" });
+      fetchDeliveries();
+      refreshLedger();
+    } catch {
+      enqueueSnackbar("Failed to update payment", { variant: "error" });
+    }
+  };
+
+  // Customer says "add to my account" -> customer ledger debit, remove from rider.
+  const handleCustomerLedger = async (order) => {
+    if (!order.customerId) {
+      enqueueSnackbar("This delivery has no saved customer to bill", { variant: "warning" });
+      return;
+    }
+    try {
+      await putDelivery(order.id, { paymentStatus: "customer" });
+      // Remove rider entries for this delivery, add customer debit
+      for (const e of ledgerForDelivery(order.id)) {
+        if (e.staffId) await deleteLedgerEntry(e.id);
+      }
+      if (!ledgerForDelivery(order.id).some((e) => e.customerId)) {
+        await addLedgerEntry({
+          shopId: parseInt(shopId),
+          customerId: order.customerId,
+          customerName: order.customerName,
+          type: "debit",
+          amount: Number(order.total) || 0,
+          description: `Delivery #${order.id} (udhar)`,
+          deliveryId: order.id,
+        });
+      }
+      enqueueSnackbar("Added to customer's ledger", { variant: "success" });
+      fetchDeliveries();
+      refreshLedger();
+    } catch {
+      enqueueSnackbar("Failed to update payment", { variant: "error" });
     }
   };
 
@@ -391,7 +452,33 @@ const Delivery = () => {
                   <div className="text-right">
                     <p className="text-yellow-400 font-bold text-xl">PKR {Number(order.total).toFixed(2)}</p>
                     <p className="text-[#ababab] text-sm">{order.items} items</p>
+                    {(() => {
+                      const ps = order.paymentStatus;
+                      if (ps === "rider")
+                        return <span className="text-xs font-semibold px-2 py-0.5 rounded-full text-blue-300 bg-blue-900/40">Paid to rider</span>;
+                      if (ps === "customer")
+                        return <span className="text-xs font-semibold px-2 py-0.5 rounded-full text-orange-300 bg-orange-900/40">On customer ledger</span>;
+                      if (ps === "received")
+                        return <span className="text-xs font-semibold px-2 py-0.5 rounded-full text-green-300 bg-green-900/40">Received</span>;
+                      return <span className="text-xs font-semibold px-2 py-0.5 rounded-full text-red-300 bg-red-900/40">Unpaid</span>;
+                    })()}
                   </div>
+                </div>
+
+                {/* Payment actions */}
+                <div className="flex gap-2 mb-2">
+                  <button
+                    onClick={() => handlePaidToRider(order)}
+                    className="flex-1 bg-[#1e2f4a] text-blue-300 text-xs font-semibold py-2 rounded hover:bg-[#25395a]"
+                  >
+                    💵 Paid to Rider
+                  </button>
+                  <button
+                    onClick={() => handleCustomerLedger(order)}
+                    className="flex-1 bg-[#4a3a1e] text-orange-300 text-xs font-semibold py-2 rounded hover:bg-[#5a4726]"
+                  >
+                    🧾 Add to Customer Ledger
+                  </button>
                 </div>
 
                 <div className="flex items-center gap-2 mb-3">

@@ -113,6 +113,13 @@ const StaffManagement = () => {
       enqueueSnackbar("No held cash to settle", { variant: "info" });
       return;
     }
+    // List the delivery orders being settled so the entry is traceable.
+    const deliveryNums = staffLedger
+      .filter((e) => e.type === "debit" && e.deliveryId)
+      .map((e) => `#${e.deliveryId}`);
+    const desc = deliveryNums.length
+      ? `Cash settled (deliveries ${deliveryNums.join(", ")})`
+      : "Cash deposited / settled";
     try {
       const res = await addLedgerEntry({
         shopId: parseInt(shopId),
@@ -120,7 +127,7 @@ const StaffManagement = () => {
         customerName: ledgerStaff.name,
         type: "credit",
         amount: bal,
-        description: "Cash deposited / settled",
+        description: desc,
       });
       if (res.data.success) {
         enqueueSnackbar(`Settled ${money(bal)} of held cash`, { variant: "success" });
