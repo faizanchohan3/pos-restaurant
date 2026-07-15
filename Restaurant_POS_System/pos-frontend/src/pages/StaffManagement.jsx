@@ -106,6 +106,31 @@ const StaffManagement = () => {
     }
   };
 
+  // One-click: rider deposits held cash -> credit the exact held amount (balance -> 0).
+  const handleSettleCash = async () => {
+    const bal = balanceFor(ledgerStaff.id);
+    if (bal <= 0) {
+      enqueueSnackbar("No held cash to settle", { variant: "info" });
+      return;
+    }
+    try {
+      const res = await addLedgerEntry({
+        shopId: parseInt(shopId),
+        staffId: ledgerStaff.id,
+        customerName: ledgerStaff.name,
+        type: "credit",
+        amount: bal,
+        description: "Cash deposited / settled",
+      });
+      if (res.data.success) {
+        enqueueSnackbar(`Settled ${money(bal)} of held cash`, { variant: "success" });
+        fetchLedger();
+      }
+    } catch {
+      enqueueSnackbar("Failed to settle cash", { variant: "error" });
+    }
+  };
+
   const handlePrintStatement = () => {
     if (!ledgerStaff) return;
     let running = 0;
@@ -624,6 +649,15 @@ const StaffManagement = () => {
                   })()}
                 </div>
                 <div className="flex items-center gap-3">
+                  {balanceFor(ledgerStaff.id) > 0 && (
+                    <button
+                      onClick={handleSettleCash}
+                      className="flex items-center gap-2 bg-green-700 hover:bg-green-800 text-white px-3 py-1.5 rounded-lg text-sm font-semibold"
+                      title="Rider deposits held cash"
+                    >
+                      💵 Settle Cash
+                    </button>
+                  )}
                   <button onClick={handlePrintStatement} className="flex items-center gap-2 bg-[#2e4a40] text-[#02ca3a] px-3 py-1.5 rounded-lg text-sm font-semibold hover:bg-[#345c4d]">
                     <FaPrint size={14} /> Print
                   </button>
