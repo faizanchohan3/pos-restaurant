@@ -46,14 +46,14 @@ const Menu = () => {
   return (
     <section className="bg-[#1f1f1f] min-h-screen flex flex-col pb-24">
       {/* Header */}
-      <div className="flex items-center justify-between px-10 py-4 bg-[#2a2a2a] border-b border-[#383838]">
-        <div className="flex items-center gap-4">
+      <div className="flex items-center justify-between px-4 md:px-10 py-3 md:py-4 bg-[#2a2a2a] border-b border-[#383838] flex-wrap gap-2">
+        <div className="flex items-center gap-3">
           <BackButton />
-          <h1 className="text-[#f5f5f5] text-2xl font-bold tracking-wider">
+          <h1 className="text-[#f5f5f5] text-xl md:text-2xl font-bold tracking-wider">
             🍽️ Menu
           </h1>
         </div>
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-3 md:gap-6">
           {/* Sticky Bill Total */}
           {cartData.length > 0 && (
             <div className="bg-[#f6b100] rounded-lg px-4 py-2 flex flex-col items-end">
@@ -78,14 +78,14 @@ const Menu = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex gap-4 flex-1 p-4">
+      <div className="flex flex-col lg:flex-row gap-4 flex-1 p-2 md:p-4">
         {/* Left: Menu Items (Scrollable) */}
-        <div className="flex-[3] overflow-y-auto">
+        <div className="lg:flex-[3] overflow-y-auto">
           <MenuContainer />
         </div>
 
-        {/* Right: Cart/Bill (Fixed) */}
-        <div className="flex-[1] flex flex-col gap-3 sticky top-4 h-fit">
+        {/* Right: Cart/Bill */}
+        <div className="lg:flex-[1] flex flex-col gap-3 lg:sticky lg:top-4 h-fit">
           <div className="bg-[#2a2a2a] rounded-lg border border-[#383838] p-4 overflow-y-auto max-h-96">
             <h3 className="text-[#f5f5f5] font-bold mb-3">👤 Customer Info</h3>
             <CustomerInfo />

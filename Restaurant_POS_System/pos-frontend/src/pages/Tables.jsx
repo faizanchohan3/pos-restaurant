@@ -70,7 +70,7 @@ const Tables = () => {
 
   return (
     <section className="bg-[#1f1f1f]  h-[calc(100vh-5rem)] overflow-hidden">
-      <div className="flex items-center justify-between px-10 py-4">
+      <div className="flex items-center justify-between px-4 md:px-10 py-4">
         <div className="flex items-center gap-4">
           <BackButton />
           <h1 className="text-[#f5f5f5] text-2xl font-bold tracking-wider">
@@ -102,7 +102,7 @@ const Tables = () => {
         </div>
       </div>
 
-      <div className="px-10 py-4 h-[calc(100vh-13rem)] overflow-y-auto scrollbar-hide">
+      <div className="px-4 md:px-10 py-4 h-[calc(100vh-13rem)] overflow-y-auto scrollbar-hide">
         {filteredTables.length === 0 ? (
           <div className="text-center text-[#ababab] py-16">
             <p className="text-lg mb-2">No tables yet</p>
@@ -130,7 +130,7 @@ const Tables = () => {
       {/* Add Table Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-[#2a2a2a] rounded-lg p-8 w-96">
+          <div className="bg-[#2a2a2a] rounded-lg p-6 w-full max-w-md mx-2">
             <h2 className="text-white text-xl font-bold mb-4">Add New Table</h2>
             <form onSubmit={handleAddTable}>
               <div className="mb-4">

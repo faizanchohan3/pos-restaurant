@@ -98,7 +98,7 @@ const Categories = () => {
 
   return (
     <section className="bg-[#1f1f1f] h-[calc(100vh-5rem)] overflow-hidden flex flex-col">
-      <div className="flex items-center justify-between px-10 py-4">
+      <div className="flex items-center justify-between px-4 md:px-10 py-4">
         <div className="flex items-center gap-4">
           <BackButton />
           <h1 className="text-[#f5f5f5] text-2xl font-bold tracking-wider">
@@ -118,13 +118,13 @@ const Categories = () => {
       </div>
 
       {/* Categories Grid */}
-      <div className="flex-1 overflow-auto px-10 pb-4">
+      <div className="flex-1 overflow-auto px-4 md:px-10 pb-4">
         {loading ? (
           <p className="text-center text-[#ababab] py-8">Loading...</p>
         ) : categories.length === 0 ? (
           <p className="text-center text-[#ababab] py-8">No categories yet. Click "Add Category" to create one.</p>
         ) : (
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {categories.map((category) => (
             <div key={category.id} className="bg-[#2a2a2a] rounded-lg p-5 border border-[#383838] hover:border-yellow-400 transition">
               <h3 className="text-[#f5f5f5] font-bold text-lg mb-2">{category.name}</h3>

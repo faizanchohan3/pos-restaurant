@@ -440,9 +440,9 @@ const StaffManagement = () => {
                 .map((member) => (
               <div
                 key={member.id}
-                className="bg-[#2a2a2a] border border-[#383838] rounded-lg p-6 hover:border-yellow-500 transition"
+                className="bg-[#2a2a2a] border border-[#383838] rounded-lg p-4 md:p-6 hover:border-yellow-500 transition"
               >
-                <div className="flex justify-between items-start">
+                <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <h3 className="text-xl font-bold text-[#f5f5f5]">
@@ -488,7 +488,7 @@ const StaffManagement = () => {
                     </div>
                   </div>
 
-                  <div className="flex gap-2 ml-4">
+                  <div className="flex gap-2 md:ml-4 flex-wrap">
                     <button
                       onClick={() => handlePaySalary(member)}
                       title="Pay Salary"

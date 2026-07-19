@@ -269,7 +269,7 @@ const Customers = () => {
             {filtered.map((c) => (
               <div
                 key={c.id}
-                className="bg-[#2a2a2a] border border-[#383838] rounded-lg p-6 hover:border-yellow-500 transition flex justify-between items-start"
+                className="bg-[#2a2a2a] border border-[#383838] rounded-lg p-4 md:p-6 hover:border-yellow-500 transition flex flex-col md:flex-row md:justify-between md:items-start gap-3"
               >
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
@@ -289,7 +289,7 @@ const Customers = () => {
                     <p className="text-[#ababab]">📍 <span className="text-white">{c.address || "-"}</span></p>
                   </div>
                 </div>
-                <div className="flex gap-2 ml-4">
+                <div className="flex gap-2 md:ml-4 flex-wrap">
                   <button
                     onClick={() => openLedger(c)}
                     title="Ledger"

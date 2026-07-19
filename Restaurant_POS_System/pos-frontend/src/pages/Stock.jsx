@@ -156,7 +156,7 @@ const Stock = () => {
 
   return (
     <section className="bg-[#1f1f1f] min-h-screen overflow-auto flex flex-col pb-10">
-      <div className="flex items-center justify-between px-10 py-4">
+      <div className="flex items-center justify-between px-4 md:px-10 py-4">
         <div className="flex items-center gap-4">
           <BackButton />
           <h1 className="text-[#f5f5f5] text-2xl font-bold tracking-wider">
@@ -180,7 +180,7 @@ const Stock = () => {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-3 px-10 mb-4 flex-wrap">
+      <div className="flex items-center gap-3 px-4 md:px-10 mb-4 flex-wrap">
         <input
           type="text"
           value={search}
@@ -216,7 +216,7 @@ const Stock = () => {
       )}
 
       {/* Stock Table */}
-      <div className="flex-1 overflow-auto px-10 mb-4">
+      <div className="flex-1 overflow-auto px-4 md:px-10 mb-4">
         <table className="w-full text-left text-[#ababab]">
           <thead className="sticky top-0 bg-[#2a2a2a]">
             <tr className="border-b border-[#383838]">
@@ -276,7 +276,7 @@ const Stock = () => {
       {/* Add Stock Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-[#2a2a2a] rounded-lg p-8 w-96">
+          <div className="bg-[#2a2a2a] rounded-lg p-6 w-full max-w-md mx-2">
             <h2 className="text-white text-xl font-bold mb-4">Add Stock Item</h2>
             <form onSubmit={handleAddStock}>
               <div className="mb-4">

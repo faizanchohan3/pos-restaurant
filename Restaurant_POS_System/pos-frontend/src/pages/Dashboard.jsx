@@ -28,13 +28,13 @@ const Dashboard = () => {
 
   return (
     <div className="bg-[#1f1f1f] h-[calc(100vh-5rem)]">
-      <div className="container mx-auto flex items-center justify-between py-14 px-6 md:px-4">
-        <div className="flex items-center gap-3">
+      <div className="container mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-3 py-6 md:py-14 px-4">
+        <div className="flex items-center gap-2 md:gap-3 flex-wrap">
           {buttons.map(({ label, icon, action }) => {
             return (
               <button
                 onClick={() => handleOpenModal(action)}
-                className="bg-[#1a1a1a] hover:bg-[#262626] px-8 py-3 rounded-lg text-[#f5f5f5] font-semibold text-md flex items-center gap-2"
+                className="bg-[#1a1a1a] hover:bg-[#262626] px-4 md:px-8 py-3 rounded-lg text-[#f5f5f5] font-semibold text-sm md:text-md flex items-center gap-2"
               >
                 {label} {icon}
               </button>
@@ -42,12 +42,12 @@ const Dashboard = () => {
           })}
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3 flex-wrap">
           {tabs.map((tab) => {
             return (
               <button
                 className={`
-                px-8 py-3 rounded-lg text-[#f5f5f5] font-semibold text-md flex items-center gap-2 ${
+                px-4 md:px-8 py-3 rounded-lg text-[#f5f5f5] font-semibold text-sm md:text-md flex items-center gap-2 ${
                   activeTab === tab
                     ? "bg-[#262626]"
                     : "bg-[#1a1a1a] hover:bg-[#262626]"

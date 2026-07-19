@@ -378,7 +378,7 @@ const Delivery = () => {
 
   return (
     <section className="bg-[#1f1f1f] h-[calc(100vh-5rem)] overflow-hidden flex flex-col">
-      <div className="flex items-center justify-between px-10 py-4">
+      <div className="flex items-center justify-between px-4 md:px-10 py-4">
         <div className="flex items-center gap-4">
           <BackButton />
           <h1 className="text-[#f5f5f5] text-2xl font-bold tracking-wider">Delivery Orders</h1>
@@ -400,7 +400,7 @@ const Delivery = () => {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-3 px-10 mb-3 flex-wrap">
+      <div className="flex items-center gap-3 px-4 md:px-10 mb-3 flex-wrap">
         <input
           type="text"
           value={search}
@@ -422,7 +422,7 @@ const Delivery = () => {
       </div>
 
       {/* Delivery Orders */}
-      <div className="flex-1 overflow-auto px-10 pb-4">
+      <div className="flex-1 overflow-auto px-4 md:px-10 pb-4">
         {loading ? (
           <p className="text-[#ababab] py-8 text-center">Loading...</p>
         ) : filteredDeliveries.length === 0 ? (

@@ -134,7 +134,7 @@ const Products = () => {
 
   return (
     <section className="bg-[#1f1f1f] min-h-screen overflow-auto flex flex-col pb-10">
-      <div className="flex items-center justify-between px-10 py-4 sticky top-0 bg-[#1f1f1f] border-b border-[#383838] z-20">
+      <div className="flex items-center justify-between px-4 md:px-10 py-4 sticky top-0 bg-[#1f1f1f] border-b border-[#383838] z-20">
         <div className="flex items-center gap-4">
           <BackButton />
           <h1 className="text-[#f5f5f5] text-2xl font-bold tracking-wider">
@@ -154,9 +154,9 @@ const Products = () => {
       </div>
 
       {/* Summary Card */}
-      <div className="px-10 py-6">
+      <div className="px-4 md:px-10 py-6">
         <div className="bg-[#2a2a2a] rounded-lg p-4 border border-[#383838]">
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
               <p className="text-[#ababab] text-sm">Total Products</p>
               <p className="text-white text-2xl font-bold">{products.length}</p>
@@ -174,7 +174,7 @@ const Products = () => {
       </div>
 
       {/* Products Table */}
-      <div className="px-10 pb-8">
+      <div className="px-4 md:px-10 pb-8">
         <div className="rounded-lg border border-[#383838] overflow-hidden">
           <table className="w-full text-left text-[#ababab] bg-[#1f1f1f]">
             <thead className="bg-[#2a2a2a] border-b-2 border-[#383838]">

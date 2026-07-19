@@ -135,7 +135,7 @@ const Expenses = () => {
 
   return (
     <section className="bg-[#1f1f1f] min-h-screen overflow-auto flex flex-col pb-10">
-      <div className="flex items-center justify-between px-10 py-4 sticky top-0 bg-[#1f1f1f] border-b border-[#383838]">
+      <div className="flex items-center justify-between px-4 md:px-10 py-4 sticky top-0 bg-[#1f1f1f] border-b border-[#383838]">
         <div className="flex items-center gap-4">
           <BackButton />
           <h1 className="text-[#f5f5f5] text-2xl font-bold tracking-wider">
@@ -160,9 +160,9 @@ const Expenses = () => {
       </div>
 
       {/* Summary Cards */}
-      <div className="px-10 py-6">
+      <div className="px-4 md:px-10 py-6">
         <div className="bg-[#2a2a2a] rounded-lg p-6 border border-[#383838]">
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <p className="text-[#ababab] text-sm">Total Expenses</p>
               <p className="text-red-400 text-2xl font-bold">
@@ -189,9 +189,9 @@ const Expenses = () => {
 
       {/* Category Breakdown */}
       {categoryExpenses.length > 0 && (
-        <div className="px-10 py-6">
+        <div className="px-4 md:px-10 py-6">
           <h2 className="text-[#f5f5f5] text-xl font-bold mb-4">By Category</h2>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {categoryExpenses.map((cat, idx) => (
               <div
                 key={idx}
@@ -208,7 +208,7 @@ const Expenses = () => {
       )}
 
       {/* Expenses List */}
-      <div className="px-10 py-6">
+      <div className="px-4 md:px-10 py-6">
         <h2 className="text-[#f5f5f5] text-xl font-bold mb-4">Expense Records</h2>
 
         {loading ? (

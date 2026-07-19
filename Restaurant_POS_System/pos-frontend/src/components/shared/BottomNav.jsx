@@ -122,7 +122,7 @@ const BottomNav = () => {
         onClick={() => navigate("/")}
         className={`flex items-center justify-center font-bold ${
           isActive("/") ? "text-[#f5f5f5] bg-[#343434]" : "text-[#ababab]"
-        } w-[300px] rounded-[20px]`}
+        } flex-1 rounded-[20px] text-sm md:text-base`}
       >
         <FaHome className="inline mr-2" size={20} /> <p>Home</p>
       </button>
@@ -130,7 +130,7 @@ const BottomNav = () => {
         onClick={() => navigate("/orders")}
         className={`flex items-center justify-center font-bold ${
           isActive("/orders") ? "text-[#f5f5f5] bg-[#343434]" : "text-[#ababab]"
-        } w-[300px] rounded-[20px]`}
+        } flex-1 rounded-[20px] text-sm md:text-base`}
       >
         <MdOutlineReorder className="inline mr-2" size={20} /> <p>Orders</p>
       </button>
@@ -138,14 +138,14 @@ const BottomNav = () => {
         onClick={() => navigate("/tables")}
         className={`flex items-center justify-center font-bold ${
           isActive("/tables") ? "text-[#f5f5f5] bg-[#343434]" : "text-[#ababab]"
-        } w-[300px] rounded-[20px]`}
+        } flex-1 rounded-[20px] text-sm md:text-base`}
       >
         <MdTableBar className="inline mr-2" size={20} /> <p>Tables</p>
       </button>
 
       {/* "More" menu only shows when the current role has items available */}
       {visibleMenuItems.length > 0 && (
-        <div className="relative w-[300px]">
+        <div className="relative flex-1">
           <button
             onClick={() => setShowMoreMenu(!showMoreMenu)}
             className="flex items-center justify-center font-bold text-[#ababab] w-full hover:text-[#f5f5f5]"
@@ -195,9 +195,9 @@ const BottomNav = () => {
       <button
         disabled={isActive("/tables") || isActive("/menu")}
         onClick={openModal}
-        className="absolute bottom-6 bg-[#F6B100] text-[#f5f5f5] rounded-full p-4 items-center"
+        className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-[#F6B100] text-[#f5f5f5] rounded-full p-3 md:p-4 items-center shadow-lg"
       >
-        <BiSolidDish size={40} />
+        <BiSolidDish className="text-3xl md:text-4xl" />
       </button>
 
       <Modal isOpen={isModalOpen} onClose={closeModal} title="Create Order">

@@ -256,7 +256,7 @@ const Orders = () => {
 
   return (
     <section className="bg-[#1f1f1f] h-[calc(100vh-5rem)] overflow-hidden flex flex-col">
-      <div className="flex items-center justify-between px-10 py-4">
+      <div className="flex items-center justify-between px-4 md:px-10 py-4">
         <div className="flex items-center gap-4">
           <BackButton />
           <h1 className="text-[#f5f5f5] text-2xl font-bold tracking-wider">Orders</h1>
@@ -289,7 +289,7 @@ const Orders = () => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto px-10 pb-6">
+      <div className="flex-1 overflow-auto px-4 md:px-10 pb-6">
         <div className="overflow-x-auto rounded-lg border border-[#383838]">
           <table className="w-full text-left text-sm">
             <thead className="bg-[#2a2a2a] text-[#ababab] sticky top-0">
