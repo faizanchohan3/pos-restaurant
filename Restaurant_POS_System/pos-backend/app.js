@@ -391,7 +391,7 @@ app.post("/api/staff", async (req, res) => {
       return res.status(503).json({ success: false, message: "Database not connected" });
     }
 
-    const { name, email, phone, password, role, shopId } = req.body;
+    const { name, email, phone, password, role, shopId, salary } = req.body;
 
     if (!name || !email || !password || !role || !shopId) {
       return res.status(400).json({ success: false, message: "All fields are required" });
@@ -404,8 +404,8 @@ app.post("/api/staff", async (req, res) => {
     }
 
     const result = await db.query(
-      'INSERT INTO "User" (name, email, phone, password, role, "shopId", "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW()) RETURNING *',
-      [name, email, phone, password, role, shopId]
+      'INSERT INTO "User" (name, email, phone, password, role, "shopId", salary, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW()) RETURNING *',
+      [name, email, phone, password, role, shopId, salary || 0]
     );
 
     res.status(201).json({ success: true, message: "Staff added successfully!", data: result.rows[0] });
@@ -421,12 +421,12 @@ app.put("/api/staff/:id", async (req, res) => {
       return res.status(503).json({ success: false, message: "Database not connected" });
     }
 
-    const { name, email, phone, role } = req.body;
+    const { name, email, phone, role, salary } = req.body;
     const staffId = parseInt(req.params.id);
 
     const result = await db.query(
-      'UPDATE "User" SET name = COALESCE($1, name), email = COALESCE($2, email), phone = COALESCE($3, phone), role = COALESCE($4, role), "updatedAt" = NOW() WHERE id = $5 RETURNING *',
-      [name || null, email || null, phone || null, role || null, staffId]
+      'UPDATE "User" SET name = COALESCE($1, name), email = COALESCE($2, email), phone = COALESCE($3, phone), role = COALESCE($4, role), salary = COALESCE($5, salary), "updatedAt" = NOW() WHERE id = $6 RETURNING *',
+      [name || null, email || null, phone || null, role || null, salary ?? null, staffId]
     );
 
     if (result.rows.length === 0) {

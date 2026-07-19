@@ -26,6 +26,7 @@ const StaffManagement = () => {
     phone: "",
     role: "Cashier",
     password: "",
+    salary: "",
   });
 
   const shopId = localStorage.getItem("selectedShop");
@@ -55,12 +56,61 @@ const StaffManagement = () => {
     }
   };
 
-  // Net = debit - credit. Positive => staff owes shop (e.g. rider holds cash);
-  // negative => shop owes staff (e.g. unpaid salary).
+  // Cash-held balance = debit - credit (salary payments are tracked separately).
+  // Positive => staff holds shop cash (e.g. rider); negative => net paid out.
   const balanceFor = (staffId) =>
     ledger
       .filter((e) => String(e.staffId) === String(staffId))
-      .reduce((s, e) => s + (e.type === "debit" ? 1 : -1) * Number(e.amount || 0), 0);
+      .reduce((s, e) => {
+        if (e.type === "debit") return s + Number(e.amount || 0);
+        if (e.type === "credit") return s - Number(e.amount || 0);
+        return s; // salary entries don't affect cash-held balance
+      }, 0);
+
+  // Salary paid to a staff member in the current month.
+  const salaryPaidThisMonth = (staffId) => {
+    const now = new Date();
+    return ledger
+      .filter(
+        (e) =>
+          String(e.staffId) === String(staffId) &&
+          e.type === "salary" &&
+          new Date(e.createdAt).getMonth() === now.getMonth() &&
+          new Date(e.createdAt).getFullYear() === now.getFullYear()
+      )
+      .reduce((s, e) => s + Number(e.amount || 0), 0);
+  };
+
+  const handlePaySalary = async (member) => {
+    const salary = Number(member.salary || 0);
+    const input = window.prompt(
+      `Pay salary to ${member.name}. Enter amount (PKR):`,
+      salary > 0 ? String(salary) : ""
+    );
+    if (input === null) return;
+    const amt = parseFloat(input);
+    if (!amt || amt <= 0) {
+      enqueueSnackbar("Enter a valid amount", { variant: "warning" });
+      return;
+    }
+    const monthLabel = new Date().toLocaleString("en-US", { month: "long", year: "numeric" });
+    try {
+      const res = await addLedgerEntry({
+        shopId: parseInt(shopId),
+        staffId: member.id,
+        customerName: member.name,
+        type: "salary",
+        amount: amt,
+        description: `Salary paid - ${monthLabel}`,
+      });
+      if (res.data.success) {
+        enqueueSnackbar(`Paid ${money(amt)} salary to ${member.name}`, { variant: "success" });
+        fetchLedger();
+      }
+    } catch {
+      enqueueSnackbar("Failed to record salary", { variant: "error" });
+    }
+  };
 
   const openLedger = (member) => {
     setLedgerStaff(member);
@@ -144,7 +194,7 @@ const StaffManagement = () => {
     const rows = staffLedger
       .map((e) => {
         running += (e.type === "debit" ? 1 : -1) * Number(e.amount || 0);
-        return `<tr><td>${new Date(e.createdAt).toLocaleDateString()}</td><td>${e.description || ""}</td><td class="right">${e.type === "debit" ? money(e.amount) : "-"}</td><td class="right">${e.type === "credit" ? money(e.amount) : "-"}</td><td class="right">${money(running)}</td></tr>`;
+        return `<tr><td>${new Date(e.createdAt).toLocaleDateString()}</td><td>${e.description || ""}</td><td class="right">${e.type === "debit" ? money(e.amount) : "-"}</td><td class="right">${e.type !== "debit" ? money(e.amount) : "-"}</td><td class="right">${money(running)}</td></tr>`;
       })
       .join("");
     const bal = balanceFor(ledgerStaff.id);
@@ -181,6 +231,7 @@ const StaffManagement = () => {
         phone: staffMember.phone,
         role: staffMember.role,
         password: "",
+        salary: staffMember.salary ?? "",
       });
     } else {
       setEditingStaff(null);
@@ -204,6 +255,7 @@ const StaffManagement = () => {
       phone: "",
       role: "Cashier",
       password: "",
+      salary: "",
     });
   };
 
@@ -249,6 +301,7 @@ const StaffManagement = () => {
             email: formData.email,
             phone: formData.phone,
             role: formData.role,
+            salary: parseFloat(formData.salary) || 0,
           }
         );
         if (response.data.success) {
@@ -268,6 +321,7 @@ const StaffManagement = () => {
             phone: formData.phone,
             role: formData.role,
             password: formData.password,
+            salary: parseFloat(formData.salary) || 0,
             shopId: parseInt(shopId),
           }
         );
@@ -424,9 +478,24 @@ const StaffManagement = () => {
                         </span>
                       </p>
                     </div>
+                    <div className="grid grid-cols-2 gap-4 text-sm mt-2">
+                      <p className="text-[#ababab]">
+                        💰 Salary: <span className="text-white font-semibold">{money(member.salary)}</span>/mo
+                      </p>
+                      <p className="text-[#ababab]">
+                        ✅ Paid this month: <span className="text-green-400 font-semibold">{money(salaryPaidThisMonth(member.id))}</span>
+                      </p>
+                    </div>
                   </div>
 
                   <div className="flex gap-2 ml-4">
+                    <button
+                      onClick={() => handlePaySalary(member)}
+                      title="Pay Salary"
+                      className="bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition text-sm whitespace-nowrap"
+                    >
+                      💵 Pay Salary
+                    </button>
                     <button
                       onClick={() => openLedger(member)}
                       title="Ledger / Salary"
@@ -581,6 +650,20 @@ const StaffManagement = () => {
 
                 <div>
                   <label className="text-[#ababab] text-sm mb-1 block">
+                    Monthly Salary (PKR)
+                  </label>
+                  <input
+                    type="number"
+                    name="salary"
+                    value={formData.salary}
+                    onChange={handleInputChange}
+                    placeholder="e.g. 30000"
+                    className="w-full bg-[#1f1f1f] text-white px-4 py-2 rounded-lg focus:outline-none border border-[#383838] focus:border-yellow-500 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[#ababab] text-sm mb-1 block">
                     Role *
                   </label>
                   <select
@@ -686,7 +769,7 @@ const StaffManagement = () => {
                           <td className="py-2 text-xs text-[#ababab]">{new Date(e.createdAt).toLocaleDateString()}</td>
                           <td className="py-2">{e.description}</td>
                           <td className="py-2 text-right text-red-400">{e.type === "debit" ? money(e.amount) : "-"}</td>
-                          <td className="py-2 text-right text-green-400">{e.type === "credit" ? money(e.amount) : "-"}</td>
+                          <td className="py-2 text-right text-green-400">{e.type !== "debit" ? money(e.amount) : "-"}</td>
                           <td className="py-2 text-right"><button onClick={() => handleDeleteLedger(e.id)} className="text-[#ababab] hover:text-red-400"><FiTrash2 size={14} /></button></td>
                         </tr>
                       ))}
