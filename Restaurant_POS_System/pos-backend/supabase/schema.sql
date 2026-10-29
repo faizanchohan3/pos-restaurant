@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS "User" (
   password   TEXT NOT NULL,
   role       TEXT NOT NULL,          -- Admin | staff | Rider etc.
   "shopId"   INTEGER,
+  salary     DOUBLE PRECISION DEFAULT 0,
   "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -63,7 +64,8 @@ CREATE TABLE IF NOT EXISTS "Table" (
   status        TEXT NOT NULL DEFAULT 'Available',
   seats         INTEGER NOT NULL,
   "shopId"      INTEGER NOT NULL,
-  "currentOrder" INTEGER
+  "currentOrder" INTEGER,
+  "createdAt"   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS "Order" (
@@ -77,6 +79,10 @@ CREATE TABLE IF NOT EXISTS "Order" (
   "shopId"        INTEGER NOT NULL,
   "paymentMethod" TEXT,
   "paymentData"   TEXT,
+  "paymentStatus" TEXT,
+  note            TEXT,
+  "staffId"       INTEGER,
+  "staffName"     TEXT,
   "createdAt"     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   "updatedAt"     TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
