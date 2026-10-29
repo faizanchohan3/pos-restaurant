@@ -2,7 +2,27 @@ const express = require("express");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const { Pool } = require("pg");
+const bcrypt = require("bcryptjs");
 const app = express();
+
+// ---- Password helpers ----
+const BCRYPT_ROUNDS = 10;
+
+// Hash a plain-text password before storing it.
+async function hashPassword(plain) {
+  return bcrypt.hash(plain, BCRYPT_ROUNDS);
+}
+
+// Verify a plain-text password against a stored value.
+// bcrypt hashes start with "$2"; anything else is treated as a legacy
+// plain-text password so existing/manually-inserted rows still work.
+async function verifyPassword(plain, stored) {
+  if (typeof stored !== "string") return false;
+  if (stored.startsWith("$2")) {
+    return bcrypt.compare(plain, stored);
+  }
+  return plain === stored;
+}
 
 // Initialize PostgreSQL connection pool for serverless
 let db = null;
@@ -79,13 +99,13 @@ app.post("/api/superadmin/login", async (req, res) => {
       return res.status(400).json({ success: false, message: "Email and password required" });
     }
 
-    // Query Neon database for SuperAdmin
+    // Look up SuperAdmin by email, then verify the password hash
     const result = await db.query(
-      'SELECT id, name, email FROM "SuperAdmin" WHERE email = $1 AND password = $2',
-      [email, password]
+      'SELECT id, name, email, password FROM "SuperAdmin" WHERE email = $1',
+      [email]
     );
 
-    if (result.rows.length === 0) {
+    if (result.rows.length === 0 || !(await verifyPassword(password, result.rows[0].password))) {
       return res.status(401).json({ success: false, message: "Invalid credentials" });
     }
 
@@ -129,7 +149,7 @@ app.post("/api/superadmin/register", async (req, res) => {
     // Create SuperAdmin
     const result = await db.query(
       'INSERT INTO "SuperAdmin" (name, email, password, "createdAt", "updatedAt") VALUES ($1, $2, $3, NOW(), NOW()) RETURNING id, name, email',
-      [name, email, password]
+      [name, email, await hashPassword(password)]
     );
 
     res.status(201).json({
@@ -200,7 +220,7 @@ app.post("/api/shop/register", async (req, res) => {
     // Create shop
     const result = await db.query(
       'INSERT INTO "Shop" (name, "ownerName", email, phone, address, password, status, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW()) RETURNING *',
-      [name, ownerName, email, phone, address || '', password, 'pending']
+      [name, ownerName, email, phone, address || '', await hashPassword(password), 'pending']
     );
 
     res.status(201).json({
@@ -252,11 +272,14 @@ app.post("/api/shop-login", async (req, res) => {
       return res.status(400).json({ success: false, message: "Email and password required" });
     }
 
-    // Query for approved shop
+    // Look up approved shop by email, then verify the password hash
     const result = await db.query(
-      'SELECT * FROM "Shop" WHERE email = $1 AND password = $2 AND status = $3',
-      [email, password, 'approved']
+      'SELECT * FROM "Shop" WHERE email = $1 AND status = $2',
+      [email, 'approved']
     );
+    if (result.rows.length > 0 && !(await verifyPassword(password, result.rows[0].password))) {
+      result.rows = [];
+    }
 
     if (result.rows.length === 0) {
       return res.status(401).json({ success: false, message: "Invalid credentials or shop not approved" });
@@ -299,7 +322,7 @@ app.put("/api/shop/:id/password", async (req, res) => {
 
     const result = await db.query(
       'UPDATE "Shop" SET password = $1, "updatedAt" = NOW() WHERE id = $2 RETURNING id, name, email',
-      [password, shopId]
+      [await hashPassword(password), shopId]
     );
 
     if (result.rows.length === 0) {
@@ -405,7 +428,7 @@ app.post("/api/staff", async (req, res) => {
 
     const result = await db.query(
       'INSERT INTO "User" (name, email, phone, password, role, "shopId", salary, "createdAt", "updatedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW()) RETURNING *',
-      [name, email, phone, password, role, shopId, salary || 0]
+      [name, email, phone, await hashPassword(password), role, shopId, salary || 0]
     );
 
     res.status(201).json({ success: true, message: "Staff added successfully!", data: result.rows[0] });
@@ -476,9 +499,12 @@ app.post("/api/staff/login", async (req, res) => {
     }
 
     const result = await db.query(
-      'SELECT * FROM "User" WHERE email = $1 AND password = $2 AND "shopId" = $3',
-      [email, password, parseInt(shopId)]
+      'SELECT * FROM "User" WHERE email = $1 AND "shopId" = $2',
+      [email, parseInt(shopId)]
     );
+    if (result.rows.length > 0 && !(await verifyPassword(password, result.rows[0].password))) {
+      result.rows = [];
+    }
 
     if (result.rows.length === 0) {
       return res.status(401).json({ success: false, message: "Invalid credentials" });
